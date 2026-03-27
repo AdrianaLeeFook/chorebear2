@@ -15,8 +15,8 @@ import JoinCreateSuccess   from "./pages/JoinCreateSuccess/JoinCreateSuccess";
 // import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
 // import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
 // import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
-// import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
-// import Homes               from "./pages/Homes/Homes";
+import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
+import Homes               from "./pages/Homes/Homes";
 
 
 import Dashboard  from "./pages/Dashboard/Dashboard";
@@ -54,11 +54,11 @@ function App() {
         {/* ── Main app routes ── */}
         <Route path="/dashboard"      element={<Dashboard />} />
         <Route path="/house-chat"     element={<Placeholder name="House Chat" />} />
-        <Route path="/homes"          element={<Placeholder name="My Homes" />} />
+        <Route path="/homes"          element={<SelectHomeForEdit />} />
         <Route path="/settings"       element={<Settings />} />
 
         {/* ── Chore management ── */}
-        <Route path="/chores/assign"          element={<Placeholder name="Add & Assign Chores" />} />
+        <Route path="/chores/assign"          element={<Homes />} />
         <Route path="/chores/edit/:choreId"   element={<Placeholder name="Edit Specific Chore" />} />
         <Route path="/chores/new"             element={<Placeholder name="Create New Chore" />} />
 
