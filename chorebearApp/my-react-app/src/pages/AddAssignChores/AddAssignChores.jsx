@@ -112,7 +112,7 @@ const PersonCard = ({ member }) => {
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-const Homes = () => {
+const AddAssignChores = () => {
   const navigate = useNavigate();
 
   return (
@@ -120,7 +120,7 @@ const Homes = () => {
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
 
         <h1 className="text-3xl font-bold text-[#4e3728]">
-          add &amp; assign chores
+          chore list
         </h1>
 
         <div className="flex flex-col gap-4">
@@ -129,18 +129,9 @@ const Homes = () => {
           ))}
         </div>
 
-        <div className="flex justify-center mt-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-sm font-medium px-10 py-3 rounded-full transition-colors"
-          >
-            back
-          </button>
-        </div>
-
       </div>
     </div>
   );
 };
 
-export default Homes;
+export default AddAssignChores;

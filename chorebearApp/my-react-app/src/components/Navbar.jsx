@@ -11,7 +11,7 @@ const Navbar = () => {
   if (hideOn.includes(location.pathname)) return null;
 
   const navLinks = [
-    { label: "chores", path: "/chores/assign" },
+    { label: "chores", path: "/AddAssignChores" },
     { label: "profile", path: "/homes" },
     { label: "settings", path: "/settings" },
   ];

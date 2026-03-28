@@ -6,7 +6,7 @@ const Settings = () => {
 
   // ── Mock State (replace with real user data later) ──────────────────────────
   const [notifications, setNotifications] = useState("enabled");
-  const [language, setLanguage] = useState("english");
+  const [role, setRole] = useState("house owner");
   const [username, setUsername] = useState("Jessica123");
   const [password, setPassword] = useState("p@ssw0rd");
 
@@ -43,16 +43,16 @@ const Settings = () => {
           {/* Language */}
           <div className="flex flex-row items-center gap-8">
             <span className="text-[#4e3728] font-semibold text-lg w-52 text-right">
-              language
+              house role
             </span>
             <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
               className={`${fieldClass} cursor-pointer appearance-none`}
             >
-              <option value="english">english</option>
-              <option value="spanish">spanish</option>
-              <option value="french">french</option>
+              <option value="admin">admin</option>
+              <option value="houseOwner">house owner</option>
+              <option value="member">member</option>
             </select>
           </div>
 

@@ -10,13 +10,11 @@ import JoinOrCreateHome    from "./pages/JoinOrCreateHome/JoinOrCreateHome";
 import JoinHome            from "./pages/JoinHome/JoinHome";
 import CreateHome          from "./pages/CreateHome/CreateHome";
 import JoinCreateSuccess   from "./pages/JoinCreateSuccess/JoinCreateSuccess";
-// import HouseChat           from "./pages/HouseChat/HouseChat";
-// import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
+import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
 // import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
 // import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
 // import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
 import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
-import Homes               from "./pages/Homes/Homes";
 
 
 import Dashboard  from "./pages/Dashboard/Dashboard";
@@ -54,11 +52,11 @@ function App() {
         {/* ── Main app routes ── */}
         <Route path="/dashboard"      element={<Dashboard />} />
         <Route path="/house-chat"     element={<Placeholder name="House Chat" />} />
-        <Route path="/homes"          element={<SelectHomeForEdit />} />
+        <Route path="/SelectHomeForEdit"          element={<SelectHomeForEdit />} />
         <Route path="/settings"       element={<Settings />} />
 
         {/* ── Chore management ── */}
-        <Route path="/chores/assign"          element={<Homes />} />
+        <Route path="/AddAssignChores"          element={<AddAssignChores/>} />
         <Route path="/chores/edit/:choreId"   element={<Placeholder name="Edit Specific Chore" />} />
         <Route path="/chores/new"             element={<Placeholder name="Create New Chore" />} />
 

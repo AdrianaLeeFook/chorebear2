@@ -129,16 +129,6 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-
-            {/* House Chat Button */}
-            <div className="flex justify-center mt-2">
-              <button
-                onClick={() => navigate("/house-chat")}
-                className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-sm font-medium px-10 py-3 rounded-full transition-colors"
-              >
-                house chat
-              </button>
-            </div>
           </div>
         </div>
       </div>

@@ -2,6 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+require('./models/User');
+require('./models/House');
+require('./models/Chore');
+require('./models/Membership');
+require('./models/Notification');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
