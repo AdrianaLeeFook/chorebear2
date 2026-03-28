@@ -11,8 +11,8 @@ import JoinHome            from "./pages/JoinHome/JoinHome";
 import CreateHome          from "./pages/CreateHome/CreateHome";
 import JoinCreateSuccess   from "./pages/JoinCreateSuccess/JoinCreateSuccess";
 import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
-// import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
-// import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
+import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
+import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
 // import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
 import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
 
@@ -57,8 +57,8 @@ function App() {
 
         {/* ── Chore management ── */}
         <Route path="/AddAssignChores"          element={<AddAssignChores/>} />
-        <Route path="/chores/edit/:choreId"   element={<Placeholder name="Edit Specific Chore" />} />
-        <Route path="/chores/new"             element={<Placeholder name="Create New Chore" />} />
+        <Route path="/chores/edit/:choreId"   element={<EditSpecificChore />} />
+        <Route path="/chores/new"             element={<CreateNewChore />} />
 
         {/* ── Home management ── */}
         <Route path="/homes/select"   element={<Placeholder name="Select Home to Edit" />} />
