@@ -13,8 +13,8 @@ import JoinCreateSuccess   from "./pages/JoinCreateSuccess/JoinCreateSuccess";
 import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
 import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
 import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
-// import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
-// import Homes         from "./pages/Homes/Homes";
+import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
+import Homes         from "./pages/Homes/Homes";
 
 import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
 
@@ -62,8 +62,8 @@ function App() {
         <Route path="/CreateNewChore"             element={<CreateNewChore />} />
 
         {/* ── Home management ── */}
-        <Route path="/homes/select"   element={<Placeholder name="Select Home to Edit" />} />
-        <Route path="/homes/edit"     element={<Placeholder name="Edit My Homes" />} />
+        <Route path="/homes"   element={<Homes />} />
+        <Route path="/EditMyHomes"     element={<EditMyHomes />} />
 
         {/* ── 404 fallback ── */}
         <Route path="*" element={<Placeholder name="404 — Page Not Found" />} />
