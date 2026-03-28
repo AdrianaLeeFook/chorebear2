@@ -15,6 +15,11 @@ app.use(cors({ origin: "http://localhost:5173" })); // Vite runs on 5173
 app.use(express.json());
 
 // Routes will go here later
+app.use('/api/users',         require('./routes/users'));
+app.use('/api/houses',        require('./routes/houses'));
+app.use('/api/chores',        require('./routes/chores'));
+app.use('/api/memberships',   require('./routes/memberships'));
+app.use('/api/notifications', require('./routes/notifications'));
 // app.use("/api/users", require("./routes/users"));
 
 mongoose.connect(process.env.MONGO_URI)

@@ -14,6 +14,8 @@ import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
 import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
 import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
 // import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
+// import Homes         from "./pages/Homes/Homes";
+
 import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
 
 
@@ -51,14 +53,13 @@ function App() {
 
         {/* ── Main app routes ── */}
         <Route path="/dashboard"      element={<Dashboard />} />
-        <Route path="/house-chat"     element={<Placeholder name="House Chat" />} />
         <Route path="/SelectHomeForEdit"          element={<SelectHomeForEdit />} />
         <Route path="/settings"       element={<Settings />} />
 
         {/* ── Chore management ── */}
         <Route path="/AddAssignChores"          element={<AddAssignChores/>} />
-        <Route path="/chores/edit/:choreId"   element={<EditSpecificChore />} />
-        <Route path="/chores/new"             element={<CreateNewChore />} />
+        <Route path="/EditSpecificChore"   element={<EditSpecificChore />} />
+        <Route path="/CreateNewChore"             element={<CreateNewChore />} />
 
         {/* ── Home management ── */}
         <Route path="/homes/select"   element={<Placeholder name="Select Home to Edit" />} />

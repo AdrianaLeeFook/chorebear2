@@ -8,7 +8,7 @@ export default function CreateAccount() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleCreateAccount = (e) => {
+  const handleCreateAccount = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -17,7 +17,24 @@ export default function CreateAccount() {
       return;
     }
 
-    navigate("/JoinOrCreateHome", { state: { username } });
+    try {
+      const res = await fetch("http://localhost:8080/api/users/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, email, role: "member" }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Something went wrong.");
+        return;
+      }
+
+      navigate("/JoinOrCreateHome", { state: { username } });
+    } catch (err) {
+      setError("Could not connect to server.");
+    }
   };
 
   return (

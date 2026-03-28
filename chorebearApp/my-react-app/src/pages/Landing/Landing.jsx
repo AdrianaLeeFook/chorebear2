@@ -1,24 +1,48 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../../logo.png";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Landing() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setError("");
+  const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.");
+  if (!username.trim() || !password.trim()) {
+    setError("Please enter both username and password.");
+    return;
+  }
+
+  try {
+    console.log("Sending:", { username, password }); // ← add this
+    const res = await fetch("http://localhost:8080/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    console.log("Status:", res.status); // ← add this
+    const data = await res.json();
+    console.log("Response:", data); // ← add this
+
+    if (!res.ok) {
+      setError(data.message || "Invalid credentials.");
       return;
     }
 
-    navigate("/Dashboard", { state: { username } });
-  };
+    login(data);
+    navigate("/dashboard");
+  } catch (err) {
+    console.log("Error:", err); // ← add this
+    setError("Could not connect to server.");
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#d8c7b3]">
