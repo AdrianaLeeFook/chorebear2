@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+// import api from "../api";
 
-// ── Mock Data ──────────────────────────────────────────────────────────────
-const mockChore = {
-  id: 1,
-  icon: "🪣",
-  title: "mop floor",
-  description: ["mop kitchen, living room, and bathrooms", "make sure to put mop back in closet"],
-  time: null,
-  repeating: false,
-};
+// // ── Mock Data ──────────────────────────────────────────────────────────────
+// const mockChore = {
+//   id: 1,
+//   icon: "🪣",
+//   title: "mop floor",
+//   description: ["mop kitchen, living room, and bathrooms", "make sure to put mop back in closet"],
+//   time: null,
+//   repeating: false,
+// };
 
 // ── Inline Editable Field ──────────────────────────────────────────────────
 const EditableTitle = ({ value, onChange }) => {
@@ -49,14 +50,63 @@ const EditSpecificChore = ({ chore = mockChore }) => {
   const [repeating, setRepeating] = useState(chore.repeating ?? false);
   const [repeatingOpen, setRepeatingOpen] = useState(false);
 
-  const handleSave = () => {
-    console.log({ title, description, time, repeating });
-    navigate(-1);
+  // Fetch chore from backend when editing
+  useEffect(() => {
+    if (isCreating || choreFromProps) return;
+    api.get(`/chores/${choreId}`)
+      .then(res => {
+        const c = res.data;
+        setTitle(c.title);
+        setDescription(Array.isArray(c.description) ? c.description.join("\n") : c.description ?? "");
+        setTime(c.time ?? "");
+        setRepeating(c.repeating ?? false);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Chore not found");
+        setLoading(false);
+      });
+  }, [choreId]);
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    const payload = {
+      title,
+      description: description.split("\n").filter(Boolean),
+      time: time || null,
+      repeating,
+    };
+
+    try {
+      if (isCreating) {
+        // Create mode — include houseId and assignedTo
+        await api.post("/chores", {
+          ...payload,
+          houseId,
+          assignedTo: memberId,
+        });
+      } else {
+        // Edit mode — patch existing chore
+        await api.patch(`/chores/${choreId}`, payload);
+      }
+      navigate(-1);
+    } catch (err) {
+      setError("Failed to save chore");
+    }
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Delete "${title}"?`)) navigate(-1);
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${title}"?`)) return;
+    try {
+      await api.delete(`/chores/${choreId}`);
+      navigate(-1);
+    } catch (err) {
+      setError("Failed to delete chore");
+    }
   };
+
+  if (loading) return <p className="text-center text-[#4e3728] mt-10">Loading...</p>;
+  if (error) return <p className="text-center text-red-500 mt-10">{error}</p>;
 
   return (
     <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center px-8 py-8">
@@ -129,10 +179,7 @@ const EditSpecificChore = ({ chore = mockChore }) => {
                   onChange={(e) => setTime(e.target.value)}
                   className="bg-[#e2ddd8] border border-[#c9b8aa] rounded-xl px-3 py-2 text-sm text-[#4e3728] outline-none"
                 />
-                <button
-                  onClick={() => setTimeOpen(false)}
-                  className="text-sm text-[#7a9e7e] font-medium"
-                >
+                <button onClick={() => setTimeOpen(false)} className="text-sm text-[#7a9e7e] font-medium">
                   done
                 </button>
               </div>
@@ -177,15 +224,18 @@ const EditSpecificChore = ({ chore = mockChore }) => {
             onClick={handleSave}
             className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-base font-medium px-10 py-3 rounded-full transition-colors"
           >
-            save changes
+            {isCreating ? "create chore" : "save changes"}
           </button>
-          <button
-            onClick={handleDelete}
-            className="absolute right-0 text-[#4e3728] hover:text-[#c0392b] transition-colors"
-            title="delete chore"
-          >
-            🗑️
-          </button>
+          {/* Only show delete when editing an existing chore */}
+          {!isCreating && (
+            <button
+              onClick={handleDelete}
+              className="absolute right-0 text-[#4e3728] hover:text-[#c0392b] transition-colors"
+              title="delete chore"
+            >
+              🗑️
+            </button>
+          )}
         </div>
 
       </div>

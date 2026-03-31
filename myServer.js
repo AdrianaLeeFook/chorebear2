@@ -1,7 +1,8 @@
+require('dotenv').config();
+console.log("JWT_SECRET loaded:", !!process.env.JWT_SECRET); // logs true or false
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
 require('./models/User');
 require('./models/House');
 require('./models/Chore');

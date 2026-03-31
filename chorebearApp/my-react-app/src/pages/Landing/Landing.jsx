@@ -11,38 +11,38 @@ export default function Landing() {
   const { login } = useAuth();
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  if (!username.trim() || !password.trim()) {
-    setError("Please enter both username and password.");
-    return;
-  }
-
-  try {
-    console.log("Sending:", { username, password }); // ← add this
-    const res = await fetch("http://localhost:8080/api/users/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    console.log("Status:", res.status); // ← add this
-    const data = await res.json();
-    console.log("Response:", data); // ← add this
-
-    if (!res.ok) {
-      setError(data.message || "Invalid credentials.");
+    if (!username.trim() || !password.trim()) {
+      setError("Please enter both username and password.");
       return;
     }
 
-    login(data);
-    navigate("/dashboard");
-  } catch (err) {
-    console.log("Error:", err); // ← add this
-    setError("Could not connect to server.");
-  }
-};
+    try {
+      console.log("Sending:", { username, password }); // ← add this
+      const res = await fetch("http://localhost:8080/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      console.log("Status:", res.status); // ← add this
+      const data = await res.json();
+      console.log("Response:", data); // ← add this
+
+      if (!res.ok) {
+        setError(data.message || "Invalid credentials.");
+        return;
+      }
+
+      login(data);
+      navigate("/dashboard");
+    } catch (err) {
+      console.log("Error:", err); // ← add this
+      setError("Could not connect to server.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#d8c7b3]">
