@@ -1,38 +1,160 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
-// ── Mock Data ──────────────
-const mockUser = { name: "jessica" };
-const mockHouse = { name: "mojo dojo casa house" };
+// Helper to calculate days remaining from a due date
+const getDaysRemaining = (dueDate) => {
+  if (!dueDate) return null;
+  const today = new Date();
+  const due = new Date(dueDate);
+  const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  return diff;
+};
 
-const mockUpcomingChores = [
-  { id: 1, label: "clean shower", icon: "🚿", daysRemaining: 0, done: true },
-  { id: 2, label: "sweep floor", icon: "🧹", daysRemaining: 2, done: false },
-  { id: 3, label: "take out trash", icon: "🗑️", daysRemaining: 3, done: false },
+// Helper to format a date for the schedule
+const formatScheduleDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return {
+    date: date.getDate(),
+    month: date.toLocaleString("default", { month: "short" }).toUpperCase(),
+    day: date.toLocaleString("default", { weekday: "long" }).toLowerCase(),
+  };
+};
+
+// Member avatar colors
+const avatarColors = [
+  "bg-[#c9a98a]", "bg-[#7a9e7e]", "bg-[#a98ac9]",
+  "bg-[#9ac9c2]", "bg-[#c9a98a]", "bg-[#c98a8a]",
 ];
 
-const mockOverdueChores = [
-  { id: 1, member: "Freddy", days: 2, label: "clean bathroom" },
-];
-
-const mockSchedule = [
-  { date: 3, month: "JAN", day: "monday",    chores: [{ member: "A", label: "mop floor", color: "bg-[#c9a98a]" }] },
-  { date: 4, month: "JAN", day: "tuesday",   chores: [] },
-  { date: 5, month: "JAN", day: "wednesday", chores: [] },
-  { date: 6, month: "JAN", day: "thursday",  chores: [] },
-  { date: 7, month: "JAN", day: "friday",    chores: [] },
-];
-
-// ── Component ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [chores, setChores] = useState(mockUpcomingChores);
+  const { user, house } = useAuth();
 
-  const toggleChore = (id) => {
-    setChores((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c))
-    );
+  const [chores, setChores] = useState([]);
+  const [overdueChores, setOverdueChores] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [houseName, setHouseName] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !house) {
+      setLoading(false);
+      return;
+    }
+    fetchDashboardData();
+  }, [user, house]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch chores for the house
+      const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`);
+      const allChores = await res.json();
+
+      setHouseName(house.name);
+
+      const today = new Date();
+
+      // Upcoming chores assigned to the logged in user
+      const upcoming = allChores
+        .filter((c) => c.assignedTo?._id === user._id && !c.completed)
+        .map((c) => ({
+          id: c._id,
+          label: c.title,
+          icon: "📋",
+          daysRemaining: getDaysRemaining(c.dueDate),
+          done: c.completed,
+        }));
+
+      // Overdue chores — assigned to anyone, past due date
+      const overdue = allChores.filter((c) => {
+        if (!c.dueDate || c.completed) return false;
+        return new Date(c.dueDate) < today;
+      }).map((c) => ({
+        id: c._id,
+        member: c.assignedTo?.username || "Unknown",
+        days: Math.abs(getDaysRemaining(c.dueDate)),
+        label: c.title,
+      }));
+
+      // Build schedule — next 5 days
+      const next5Days = Array.from({ length: 5 }, (_, i) => {
+        const d = new Date();
+        d.setDate(today.getDate() + i);
+        return d;
+      });
+
+      const scheduleRows = next5Days.map((day, idx) => {
+        const formatted = formatScheduleDate(day);
+        const dayChores = allChores.filter((c) => {
+          if (!c.dueDate) return false;
+          const due = new Date(c.dueDate);
+          return (
+            due.getDate() === day.getDate() &&
+            due.getMonth() === day.getMonth() &&
+            due.getFullYear() === day.getFullYear()
+          );
+        }).map((c) => ({
+          member: c.assignedTo?.username?.[0]?.toUpperCase() || "?",
+          label: c.title,
+          color: avatarColors[idx % avatarColors.length],
+        }));
+
+        return { ...formatted, chores: dayChores };
+      });
+
+      setChores(upcoming);
+      setOverdueChores(overdue);
+      setSchedule(scheduleRows);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const toggleChore = async (id) => {
+    try {
+      const chore = chores.find((c) => c.id === id);
+      await fetch(`http://localhost:8080/api/chores/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !chore.done }),
+      });
+      setChores((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c))
+      );
+    } catch (err) {
+      console.error("Failed to update chore:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
+        <p className="text-[#4e3728] text-lg">loading...</p>
+      </div>
+    );
+  }
+
+  // If user has no house yet
+  if (!house) {
+    return (
+      <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#4e3728] text-lg mb-4">you are not in a house yet!</p>
+          <button
+            onClick={() => navigate("/JoinOrCreateHome")}
+            className="bg-[#7a9e7e] text-white px-6 py-3 rounded-full hover:bg-[#6a8e6e] transition"
+          >
+            join or create a home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f5ede3] px-8 py-8">
@@ -40,7 +162,7 @@ const Dashboard = () => {
 
         {/* Greeting */}
         <h1 className="text-3xl font-bold text-[#4e3728]">
-          hello, {mockUser.name}!
+          hello, {user?.username}!
         </h1>
 
         {/* Main Grid */}
@@ -54,24 +176,30 @@ const Dashboard = () => {
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 upcoming chores
               </h2>
-              <ul className="flex flex-col gap-2">
-                {chores.map((chore) => (
-                  <li key={chore.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={chore.done}
-                      onChange={() => toggleChore(chore.id)}
-                      className="w-4 h-4 accent-[#7a9e7e] cursor-pointer shrink-0"
-                    />
-                    <span className={`text-sm ${chore.done ? "line-through text-[#bbb]" : "text-[#4e3728]"}`}>
-                      {chore.icon} {chore.label}{" "}
-                      <span className={`text-xs ${chore.daysRemaining === 0 ? "text-[#c9a98a]" : "text-[#7a9e7e]"}`}>
-                        ({chore.daysRemaining} days remaining)
+              {chores.length === 0 ? (
+                <p className="text-sm text-center text-[#aaa]">no upcoming chores 🎉</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {chores.map((chore) => (
+                    <li key={chore.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={chore.done}
+                        onChange={() => toggleChore(chore.id)}
+                        className="w-4 h-4 accent-[#7a9e7e] cursor-pointer shrink-0"
+                      />
+                      <span className={`text-sm ${chore.done ? "line-through text-[#bbb]" : "text-[#4e3728]"}`}>
+                        {chore.icon} {chore.label}{" "}
+                        {chore.daysRemaining !== null && (
+                          <span className={`text-xs ${chore.daysRemaining <= 0 ? "text-[#c9a98a]" : "text-[#7a9e7e]"}`}>
+                            ({chore.daysRemaining <= 0 ? "due today" : `${chore.daysRemaining} days remaining`})
+                          </span>
+                        )}
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Overdue Chores */}
@@ -79,17 +207,21 @@ const Dashboard = () => {
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 overdue chores
               </h2>
-              <ul className="flex flex-col gap-2">
-                {mockOverdueChores.map((item) => (
-                  <li key={item.id} className="text-sm text-[#4e3728]">
-                    {item.member} is{" "}
-                    <span className="text-[#c0392b] font-medium">
-                      {item.days} day(s) late
-                    </span>
-                    : {item.label} 🤌
-                  </li>
-                ))}
-              </ul>
+              {overdueChores.length === 0 ? (
+                <p className="text-sm text-center text-[#aaa]">no overdue chores 🎉</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {overdueChores.map((item) => (
+                    <li key={item.id} className="text-sm text-[#4e3728]">
+                      {item.member} is{" "}
+                      <span className="text-[#c0392b] font-medium">
+                        {item.days} day(s) late
+                      </span>
+                      : {item.label} 🤌
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
@@ -99,13 +231,13 @@ const Dashboard = () => {
 
               {/* House Name Header */}
               <div className="text-center text-base font-semibold text-[#4e3728] py-3 border-b border-[#e8d5c4]">
-                {mockHouse.name}
+                {houseName || "your house"}
               </div>
 
               {/* Schedule Rows */}
-              {mockSchedule.map((row) => (
+              {schedule.map((row, idx) => (
                 <div
-                  key={row.date}
+                  key={idx}
                   className="flex flex-row items-center border-b border-[#e8d5c4] last:border-b-0 min-h-[56px]"
                 >
                   {/* Date */}
