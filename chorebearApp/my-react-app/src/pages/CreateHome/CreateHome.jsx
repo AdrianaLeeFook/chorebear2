@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function CreateHome() {
   const navigate = useNavigate();
@@ -8,28 +9,56 @@ export default function CreateHome() {
   const [guestCount, setGuestCount] = useState("");
   const [adminType, setAdminType] = useState("");
   const [error, setError] = useState("");
+  const { user, joinHouse } = useAuth();
+  // const { user } = useAuth();
+  // console.log("Current user:", user);
 
-  const handleCreate = () => {
-    if (!homeName.trim() || !guestCount || !adminType) {
-      setError("please complete all fields");
+  const handleCreate = async () => {
+  if (!homeName.trim() || !guestCount || !adminType) {
+    setError("please complete all fields");
+    return;
+  }
+
+  setError("");
+
+  try {
+    console.log("User:", user);
+  console.log("Sending:", { name: homeName, createdBy: user._id });
+    const res = await fetch("http://localhost:8080/api/houses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: homeName,
+        createdBy: user._id,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message || "Something went wrong.");
       return;
     }
 
-    setError("");
-
+    joinHouse(data); // ← now data exists
     navigate("/JoinCreateSuccess", {
       state: {
         type: "create",
-        homeName,
+        homeName: data.name,
+        houseCode: data.code,
         guestCount,
         adminType,
       },
     });
-  };
+  } catch (err) {
+     console.log("Full error:", err);
+    setError("Could not connect to server.");
+  }
+};
 
   return (
     <main className="min-h-screen bg-[#eadbc9] flex items-center justify-center px-6">
-      <section className="w-full max-w-[1200px] flex flex-col items-center text-center -mt-10">
+      <section className="w-full max-w-[1200px] flex flex-col items-center text-center -mt-10 pt-16">
         
         {/* Title */}
         <h1
@@ -38,6 +67,7 @@ export default function CreateHome() {
             fontSize: "clamp(3.2rem, 5.2vw, 5rem)",
             lineHeight: 1,
             fontWeight: 600,
+            
           }}
         >
           create your home

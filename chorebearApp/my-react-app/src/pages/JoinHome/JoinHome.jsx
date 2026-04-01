@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function JoinHome() {
   const navigate = useNavigate();
-  const [code, setCode] = useState(["", "", "", "", ""]);
+  const { user, joinHouse } = useAuth();
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const inputsRef = useRef([]);
 
@@ -13,7 +15,7 @@ export default function JoinHome() {
     newCode[index] = cleaned;
     setCode(newCode);
 
-    if (cleaned && index < 4) {
+    if (cleaned && index < 5) {
       inputsRef.current[index + 1]?.focus();
     }
   };
@@ -24,22 +26,43 @@ export default function JoinHome() {
     }
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     const finalCode = code.join("");
 
-    if (finalCode.length < 5) {
+    if (finalCode.length < 6) {
       setError("please enter the full home code");
       return;
     }
 
     setError("");
 
-    navigate("/JoinCreateSuccess", {
-      state: {
-        type: "join",
-        code: finalCode,
-      },
-    });
+    try {
+      const res = await fetch("http://localhost:8080/api/houses/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: finalCode, userId: user._id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Could not find a house with that code.");
+        return;
+      }
+
+      // Store house in context
+      joinHouse(data.house);
+
+      navigate("/JoinCreateSuccess", {
+        state: {
+          type: "join",
+          homeName: data.house.name,
+          houseCode: finalCode,
+        },
+      });
+    } catch (err) {
+      setError("Could not connect to server.");
+    }
   };
 
   return (
@@ -56,16 +79,11 @@ export default function JoinHome() {
           join a home
         </h1>
 
-        <p
-          className="text-[#6b4b3e] mb-8"
-          style={{
-            fontSize: "2rem",
-          }}
-        >
+        <p className="text-[#6b4b3e] mb-8" style={{ fontSize: "2rem" }}>
           enter home code below:
         </p>
 
-        <div className="flex gap-6 mb-10">
+        <div className="flex gap-4 mb-10">
           {code.map((char, index) => (
             <input
               key={index}

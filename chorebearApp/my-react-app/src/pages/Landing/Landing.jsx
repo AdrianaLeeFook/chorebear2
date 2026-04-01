@@ -8,7 +8,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, joinHouse } = useAuth();
 
   const handleLogin = async (e) => {
   e.preventDefault();
@@ -20,26 +20,31 @@ export default function Landing() {
   }
 
   try {
-    console.log("Sending:", { username, password }); // ← add this
+    // Step 1 — Login
     const res = await fetch("http://localhost:8080/api/users/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
-    console.log("Status:", res.status); // ← add this
     const data = await res.json();
-    console.log("Response:", data); // ← add this
 
-    if (!res.ok) {
-      setError(data.message || "Invalid credentials.");
-      return;
+    if (!res.ok) { setError(data.message || "Invalid credentials."); return; }
+    login(data);
+
+    // Step 2 — Fetch their house membership
+    const memberRes = await fetch(`http://localhost:8080/api/memberships/user/${data._id}`);
+    const memberships = await memberRes.json();
+
+    if (memberships.length > 0) {
+      joinHouse(memberships[0].house);
+      navigate("/dashboard");
+    }else{
+       // No house yet — send them to join or create
+        navigate("/JoinOrCreateHome");
     }
 
-    login(data);
-    navigate("/dashboard");
   } catch (err) {
-    console.log("Error:", err); // ← add this
     setError("Could not connect to server.");
   }
 };
