@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 
 export default function JoinHome() {
   const navigate = useNavigate();
-  const [code, setCode] = useState(["", "", "", "", ""]);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const inputsRef = useRef([]);
 
@@ -13,7 +13,7 @@ export default function JoinHome() {
     newCode[index] = cleaned;
     setCode(newCode);
 
-    if (cleaned && index < 4) {
+    if (cleaned && index < 5) {
       inputsRef.current[index + 1]?.focus();
     }
   };
@@ -32,12 +32,24 @@ export default function JoinHome() {
       return;
     }
 
+    const savedHomes = JSON.parse(localStorage.getItem("homes")) || [];
+
+    const matchedHome = savedHomes.find(
+      (home) => home.homeCode === finalCode
+    );
+
+    if (!matchedHome) {
+      setError("invalid home code");
+      return;
+    }
+
     setError("");
 
     navigate("/JoinCreateSuccess", {
       state: {
         type: "join",
         code: finalCode,
+        homeName: matchedHome.homeName,
       },
     });
   };
@@ -51,6 +63,7 @@ export default function JoinHome() {
             fontSize: "clamp(3.2rem, 5.2vw, 5rem)",
             lineHeight: 1,
             fontWeight: 600,
+            fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif',
           }}
         >
           join a home
@@ -60,6 +73,7 @@ export default function JoinHome() {
           className="text-[#6b4b3e] mb-8"
           style={{
             fontSize: "2rem",
+            fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif',
           }}
         >
           enter home code below:
@@ -82,12 +96,18 @@ export default function JoinHome() {
         </div>
 
         {error ? (
-          <p className="text-[#8b4b45] text-lg mb-4">{error}</p>
+          <p
+            className="text-[#8b4b45] text-lg mb-4"
+            style={{ fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif' }}
+          >
+            {error}
+          </p>
         ) : null}
 
         <button
           onClick={handleJoin}
           className="w-[140px] h-[58px] rounded-[16px] bg-[#aab095] text-[#43332c] text-[1.8rem] leading-none hover:brightness-[0.98] active:translate-y-[1px] transition"
+          style={{ fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif' }}
         >
           join
         </button>
