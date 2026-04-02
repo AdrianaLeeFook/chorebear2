@@ -118,7 +118,7 @@ const Homes = () => {
           {/*edit/create buttons*/}
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <Link 
-              to="/homes/edit" 
+              to="/editMyHomes" 
               className="flex-1 bg-[#a3b1a2] text-[#5c4b3f] text-sm font-medium py-2 px-4 rounded-full text-center shadow hover:brightness-95 transition duration-200"
             >
               edit my homes
