@@ -5,7 +5,11 @@ export default function JoinHome() {
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const inputsRef = useRef([]);
+
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const currentUserId = currentUser?._id;
 
   const handleChange = (value, index) => {
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").slice(-1).toUpperCase();
@@ -24,34 +28,53 @@ export default function JoinHome() {
     }
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     const finalCode = code.join("");
 
-    if (finalCode.length < 5) {
+    if (finalCode.length < 6) {
       setError("please enter the full home code");
       return;
     }
 
-    const savedHomes = JSON.parse(localStorage.getItem("homes")) || [];
-
-    const matchedHome = savedHomes.find(
-      (home) => home.homeCode === finalCode
-    );
-
-    if (!matchedHome) {
-      setError("invalid home code");
+    if (!currentUserId) {
+      setError("user not found");
       return;
     }
 
     setError("");
+    setLoading(true);
 
-    navigate("/JoinCreateSuccess", {
-      state: {
-        type: "join",
-        code: finalCode,
-        homeName: matchedHome.homeName,
-      },
-    });
+    try {
+      const res = await fetch("http://localhost:8080/api/houses/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: finalCode,
+          userId: currentUserId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "invalid home code");
+      }
+
+      navigate("/JoinCreateSuccess", {
+        state: {
+          type: "join",
+          code: finalCode,
+          homeName: data.home?.name || data.name || "your home",
+        },
+      });
+    } catch (err) {
+      console.error("join home error:", err);
+      setError(err.message || "invalid home code");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -106,10 +129,11 @@ export default function JoinHome() {
 
         <button
           onClick={handleJoin}
-          className="w-[140px] h-[58px] rounded-[16px] bg-[#aab095] text-[#43332c] text-[1.8rem] leading-none hover:brightness-[0.98] active:translate-y-[1px] transition"
+          disabled={loading}
+          className="w-[140px] h-[58px] rounded-[16px] bg-[#aab095] text-[#43332c] text-[1.8rem] leading-none hover:brightness-[0.98] active:translate-y-[1px] transition disabled:opacity-60"
           style={{ fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif' }}
         >
-          join
+          {loading ? "joining..." : "join"}
         </button>
       </section>
     </main>

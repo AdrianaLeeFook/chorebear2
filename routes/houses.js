@@ -49,6 +49,31 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Join a house by code
+router.post('/join', async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code || !code.trim()) {
+      return res.status(400).json({ message: 'home code is required' });
+    }
+
+    const house = await House.findOne({ code: code.trim().toUpperCase() });
+
+    if (!house) {
+      return res.status(404).json({ message: 'invalid home code' });
+    }
+
+    res.status(200).json({
+      message: 'home found',
+      home: house,
+    });
+  } catch (err) {
+    console.error('error joining house:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all houses
 router.get('/', async (req, res) => {
   try {
