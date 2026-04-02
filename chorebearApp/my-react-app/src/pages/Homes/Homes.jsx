@@ -1,71 +1,133 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-
-/*reminder to edit app.jsx to actually route here, it was missing as of finishing this page */
+import React, { useState, useEffect } from 'react';
+import { useAuth } from "../../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 
 const Homes = () => {
-  //temporary house names, pull from database using active user
-  const [homes, setHomes] = useState([
-    { id: '1', name: 'mojo dojo casa house' },
-    { id: '2', name: 'building 11 apt C' }
-  ]);
-  //temporary username for now
-  const mockUser = { name: "jessica" };
+  //login 
+  const { user, setHouse } = useAuth();
+
+  //dummy user for testing back end stuff on my end
+  /*const user = {
+    _id: "69ce747430b739de32dbba9d", 
+    username: "TestUser"
+  };*/
+
+  const navigate = useNavigate();
+  const [homes, setHomes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  //Fetch user's homes when the component starts or if the user changes
+  useEffect(() => {
+    const fetchUserHomes = async () => {
+      //shouldnt ever see this with the protected pages thing
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        //make sure the port number is correct!!! 8080 is how my local setup is
+        const res = await fetch(`http://localhost:8080/api/memberships/user/${user._id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+            //token stuff but we are probably not doing this method, delete later
+            //"Authorization": `Bearer ${localStorage.getItem("token")}` 
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch your homes');
+        }
+
+        const memberData = await res.json();
+        
+        //backend returns Memberships. extract 'house' object from each membership.
+        const houseData = memberData
+          .map(membership => membership.house)
+          //filter out null values just in case
+          .filter(house => house !== null); 
+
+        setHomes(houseData);
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserHomes();
+  }, [user]);
+
+
+
+  const handleSelectHome = (home) => {
+    //setHouse(home);
+    navigate('/dashboard');
+  };
+
+  //username display
+  const displayName = user?.username;
 
   return (
-    //background color
-    <div className="min-h-screen bg-[#d8c7b3] p-6 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-[#f5ede3] p-6 font-sans">
       
-      <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row gap-12 items-start">
+      {/*main div to orient everything*/}
+      <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-10">
         
-        {/*Left side*/}
-        <div className="md:w-2/5 flex flex-col items-center">
-          {/* profile pic like in figma */}
-          <img 
-            //need to decide how to handle images right under this comment vvv
-            className="w-64 h-64 rounded-full object-cover mb-4 border-2 border-[#a18a7c]/20 shadow-inner"
-          />
-          <h2 className="text-3xl font-semibold text-[#5c4b3f] mb-1">{mockUser.name}</h2>
-          
-          <button className="text-sm text-[#5c4b3f] underline hover:text-[#a18a7c]">
-            edit profile
-          </button>
+        {/*username and settings link*/}
+        <div className="flex flex-col items-center text-center">
+          <h2 className="text-3xl font-semibold text-[#5c4b3f] mb-1">{displayName}</h2>
+          <Link 
+            to="/settings"
+            className="text-sm text-[#5c4b3f] underline hover:text-[#a18a7c]"
+          >
+            Settings
+          </Link>
         </div>
 
-        {/*Right side*/}
-        <div className="md:w-3/5 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-semibold text-[#5c4b3f]">my homes</h1>
-          </div>
+        {/*home main section*/}
+        <div className="flex flex-col items-center w-full max-w-md">
+          <h1 className="text-4xl font-semibold text-[#5c4b3f] mb-6">my homes</h1>
           
-          {/*houses displayed here, edit after mongo is working*/}
-          <div className="space-y-4 mb-8">
-            {homes.map((home) => (
-              <div 
-                key={home.id} 
-                // entries for each home here
-                className="p-4 bg-[#d8b4a8] rounded-xl flex justify-center items-center h-16 shadow-sm"
-              >
-                <span className="text-xl text-[#5c4b3f] font-medium">{home.name}</span>
+          {/*List of homes*/}
+          <div className="space-y-4 mb-8 w-full text-center">
+            {isLoading ? (
+              <div className="p-4 text-[#5c4b3f]/70 italic">Loading your homes...</div>
+            ) : error ? (
+              <div className="p-4 text-red-500 italic">{error}</div>
+            ) : homes.length > 0 ? (
+              homes.map((home) => (
+                <button 
+                  key={home._id}
+                  onClick={() => handleSelectHome(home)}
+                  className="p-4 bg-[#d8b4a8] rounded-xl flex justify-center items-center min-h-[4rem] shadow-sm w-full hover:brightness-95 transition cursor-pointer"
+                >
+                  <span className="text-xl text-[#5c4b3f] font-medium">{home.name}</span>
+                </button>
+              ))
+            ) : (
+              <div className="p-4 text-[#5c4b3f]/70 italic">
+                You haven't joined any homes yet.
               </div>
-            ))}
+            )}
           </div>
 
-          {/*Buttons*/}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/*edit/create buttons*/}
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
             <Link 
-              //edit button
-              to="/EditMyHomes" 
+              to="/homes/edit" 
               className="flex-1 bg-[#a3b1a2] text-[#5c4b3f] text-sm font-medium py-2 px-4 rounded-full text-center shadow hover:brightness-95 transition duration-200"
             >
               edit my homes
             </Link>
             <Link 
-              //join button
-              to="/JoinHome" 
+              to="/JoinOrCreateHome" 
               className="flex-1 bg-[#a3b1a2] text-[#5c4b3f] text-sm font-medium py-2 px-4 rounded-full text-center shadow hover:brightness-95 transition duration-200"
             >
-              join a home
+              join or create home
             </Link>
           </div>
         </div>
