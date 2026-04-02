@@ -10,8 +10,9 @@ export default function CreateHome() {
 
   const [loading, setLoading] = useState(false);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
-  const currentUserId = currentUser?._id;
+  // const currentUser = JSON.parse(localStorage.getItem("user"));
+  const {user} = useAuth();
+  const currentUserId = user?._id;
 
   const handleCreate = async () => {
     if (!homeName.trim()) {

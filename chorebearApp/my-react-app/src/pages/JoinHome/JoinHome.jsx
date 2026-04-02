@@ -11,7 +11,8 @@ export default function JoinHome() {
   const inputsRef = useRef([]);
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
-  const currentUserId = currentUser?._id;
+  const {user} = useAuth();
+  const currentUserId = user?._id;
 
   const handleChange = (value, index) => {
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").slice(-1).toUpperCase();

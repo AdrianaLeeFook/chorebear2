@@ -16,6 +16,10 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const joinHouse = (houseData) => {
+    setHouse(houseData);
+  };
+
   return (
     <AuthContext.Provider value={{ user, house, login, logout, joinHouse }}>
       {children}

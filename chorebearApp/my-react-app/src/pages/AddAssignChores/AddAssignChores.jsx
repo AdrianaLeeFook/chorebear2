@@ -45,7 +45,7 @@ const PersonCard = ({ member, houseId }) => {
     <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
 
       {/* Header */}
-      <span className="text-xl font-bold text-[#4e3728]">{member.name}</span>
+      <span className="text-xl font-bold text-[#4e3728]">{member.username}</span>
 
       {/* Chore chips — always visible, no dropdown */}
       <div className="flex flex-wrap gap-2 mt-3">

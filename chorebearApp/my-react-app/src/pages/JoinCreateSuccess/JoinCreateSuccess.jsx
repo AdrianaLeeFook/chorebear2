@@ -6,7 +6,7 @@ export default function JoinCreateSuccess() {
 
   const isCreate = state?.type === "create";
   const homeName = state?.homeName || "your home";
-  const houseCode = state?.houseCode || "";
+  const homeCode = state?.homeCode || "";
 
   return (
     <main className="min-h-screen bg-[#eadbc9] flex items-center justify-center px-6">
@@ -30,10 +30,10 @@ export default function JoinCreateSuccess() {
         </p>
 
         {/* Show house code when creating so they can share it */}
-        {isCreate && houseCode && (
+        {isCreate && homeCode && (
           <div className="bg-white border border-[#e8d5c4] rounded-2xl px-10 py-5 mb-10">
             <p className="text-[#a0816a] text-base mb-1">share this code with your roommates:</p>
-            <p className="text-[#4e3728] text-4xl font-bold tracking-widest">{houseCode}</p>
+            <p className="text-[#4e3728] text-4xl font-bold tracking-widest">{homeCode}</p>
           </div>
         )}
 

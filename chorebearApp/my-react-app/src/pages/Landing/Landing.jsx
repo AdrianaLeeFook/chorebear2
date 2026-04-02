@@ -8,7 +8,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, joinHouse } = useAuth();
+  const { login, joinHouse } = useAuth();       // never uses joinHouse. worth cleaning this up
 
   const handleLogin = async (e) => {
     e.preventDefault();

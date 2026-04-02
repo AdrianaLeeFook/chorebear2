@@ -13,10 +13,12 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all chores for a house
 router.get('/house/:houseId', async (req, res) => {
   try {
-    const chores = await Chore.find({ house: req.params.houseId }).populate('assignedTo');
+    const query = { house: req.params.houseId };
+    if (req.query.memberId) query.assignedTo = req.query.memberId;
+
+    const chores = await Chore.find(query).populate('assignedTo');
     res.json(chores);
   } catch (err) {
     res.status(500).json({ message: err.message });

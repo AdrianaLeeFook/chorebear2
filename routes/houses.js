@@ -64,39 +64,21 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Join a house by code
 router.post('/join', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, userId } = req.body;
 
     if (!code || !code.trim()) {
       return res.status(400).json({ message: 'home code is required' });
     }
 
-    const house = await House.findOne({ code: code.trim().toUpperCase() });
-
-    if (!house) {
-      return res.status(404).json({ message: 'invalid home code' });
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
     }
 
-    res.status(200).json({
-      message: 'home found',
-      home: house,
-    });
-  } catch (err) {
-    console.error('error joining house:', err);
-    res.status(500).json({ message: err.message });
-  }
-});
+    const house = await House.findOne({ code: code.trim().toUpperCase() });
+    if (!house) return res.status(404).json({ message: 'invalid home code' });
 
-// Join a house by code
-router.post('/join', async (req, res) => {
-  try {
-    const { code, userId } = req.body;
-    const house = await House.findOne({ code });
-    if (!house) return res.status(404).json({ message: 'House not found' });
-
-    // Check if already a member
     const existing = await Membership.findOne({ user: userId, house: house._id });
     if (existing) return res.status(400).json({ message: 'Already a member' });
 
@@ -107,8 +89,9 @@ router.post('/join', async (req, res) => {
     });
     await membership.save();
 
-    res.status(201).json({ house, membership });
+    res.status(201).json({ home: house, membership });
   } catch (err) {
+    console.error('error joining house:', err);
     res.status(500).json({ message: err.message });
   }
 });
