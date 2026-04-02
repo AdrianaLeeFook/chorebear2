@@ -21,7 +21,12 @@ export default function CreateAccount() {
       const res = await fetch("http://localhost:8080/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, email, role: "member" }),
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+          email: email.trim(),
+          role: "member",
+        }),
       });
 
       const data = await res.json();
@@ -31,7 +36,14 @@ export default function CreateAccount() {
         return;
       }
 
-      navigate("/JoinOrCreateHome", { state: { username } });
+      // save created user so other pages can use the user id
+      localStorage.setItem("user", JSON.stringify(data));
+
+      navigate("/JoinOrCreateHome", {
+        state: {
+          username: data.username,
+        },
+      });
     } catch (err) {
       setError("Could not connect to server.");
     }
@@ -40,13 +52,11 @@ export default function CreateAccount() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#d8c7b3]">
       <div className="w-full max-w-md text-center px-6">
-
         <h1 className="text-4xl md:text-5xl font-semibold text-[#5a4336] mb-10">
           create account
         </h1>
 
         <form onSubmit={handleCreateAccount} className="space-y-6">
-
           <input
             type="text"
             placeholder="name"
@@ -71,9 +81,7 @@ export default function CreateAccount() {
             className="w-full px-4 py-3 rounded-xl bg-[#e8e3de] text-gray-700 placeholder-gray-500 focus:outline-none"
           />
 
-          {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
             type="submit"

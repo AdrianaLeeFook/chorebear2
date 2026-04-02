@@ -4,10 +4,14 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function JoinHome() {
   const navigate = useNavigate();
-  const { user, joinHouse } = useAuth();
+  // const { user, joinHouse } = useAuth();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const inputsRef = useRef([]);
+
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const currentUserId = currentUser?._id;
 
   const handleChange = (value, index) => {
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").slice(-1).toUpperCase();
@@ -34,34 +38,46 @@ export default function JoinHome() {
       return;
     }
 
+    if (!currentUserId) {
+      setError("user not found");
+      return;
+    }
+
+
     setError("");
+    setLoading(true);
 
     try {
       const res = await fetch("http://localhost:8080/api/houses/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: finalCode, userId: user._id }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: finalCode,
+          userId: currentUserId,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Could not find a house with that code.");
-        return;
-      }
 
-      // Store house in context
-      joinHouse(data.house);
+        throw new Error(data.message || "invalid home code");
+      }
 
       navigate("/JoinCreateSuccess", {
         state: {
           type: "join",
-          homeName: data.house.name,
-          houseCode: finalCode,
+          code: finalCode,
+          homeName: data.home?.name || data.name || "your home",
         },
       });
     } catch (err) {
-      setError("Could not connect to server.");
+      console.error("join home error:", err);
+      setError(err.message || "invalid home code");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,12 +90,20 @@ export default function JoinHome() {
             fontSize: "clamp(3.2rem, 5.2vw, 5rem)",
             lineHeight: 1,
             fontWeight: 600,
+            fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif',
           }}
         >
           join a home
         </h1>
 
-        <p className="text-[#6b4b3e] mb-8" style={{ fontSize: "2rem" }}>
+
+        <p
+          className="text-[#6b4b3e] mb-8"
+          style={{
+            fontSize: "2rem",
+            fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif',
+          }}
+        >
           enter home code below:
         </p>
 
@@ -100,14 +124,21 @@ export default function JoinHome() {
         </div>
 
         {error ? (
-          <p className="text-[#8b4b45] text-lg mb-4">{error}</p>
+          <p
+            className="text-[#8b4b45] text-lg mb-4"
+            style={{ fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif' }}
+          >
+            {error}
+          </p>
         ) : null}
 
         <button
           onClick={handleJoin}
-          className="w-[140px] h-[58px] rounded-[16px] bg-[#aab095] text-[#43332c] text-[1.8rem] leading-none hover:brightness-[0.98] active:translate-y-[1px] transition"
+          disabled={loading}
+          className="w-[140px] h-[58px] rounded-[16px] bg-[#aab095] text-[#43332c] text-[1.8rem] leading-none hover:brightness-[0.98] active:translate-y-[1px] transition disabled:opacity-60"
+          style={{ fontFamily: '"Trebuchet MS", "Segoe UI", sans-serif' }}
         >
-          join
+          {loading ? "joining..." : "join"}
         </button>
       </section>
     </main>
