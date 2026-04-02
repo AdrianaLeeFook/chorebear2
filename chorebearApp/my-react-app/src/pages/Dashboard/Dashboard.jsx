@@ -2,16 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-// Helper to calculate days remaining from a due date
 const getDaysRemaining = (dueDate) => {
   if (!dueDate) return null;
   const today = new Date();
   const due = new Date(dueDate);
-  const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  return diff;
+  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 };
 
-// Helper to format a date for the schedule
 const formatScheduleDate = (dateStr) => {
   const date = new Date(dateStr);
   return {
@@ -21,7 +18,6 @@ const formatScheduleDate = (dateStr) => {
   };
 };
 
-// Member avatar colors
 const avatarColors = [
   "bg-[#c9a98a]", "bg-[#7a9e7e]", "bg-[#a98ac9]",
   "bg-[#9ac9c2]", "bg-[#c9a98a]", "bg-[#c98a8a]",
@@ -29,35 +25,34 @@ const avatarColors = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, house } = useAuth();
+  const { user, houses } = useAuth();
 
+  const [activeHouseIndex, setActiveHouseIndex] = useState(0);
   const [chores, setChores] = useState([]);
   const [overdueChores, setOverdueChores] = useState([]);
   const [schedule, setSchedule] = useState([]);
-  const [houseName, setHouseName] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const activeHouse = houses[activeHouseIndex] || null;
+
+  // Re-fetch whenever the selected house changes
   useEffect(() => {
-    if (!user || !house) {
+    if (!user || !activeHouse) {
       setLoading(false);
       return;
     }
-    fetchDashboardData();
-  }, [user, house]);
+    fetchDashboardData(activeHouse);
+  }, [user, activeHouse]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (house) => {
     try {
       setLoading(true);
-
-      // Fetch chores for the house
-      const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`);
+      const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
       const allChores = await res.json();
-
-      setHouseName(house.name);
-
       const today = new Date();
 
-      // Upcoming chores assigned to the logged in user
       const upcoming = allChores
         .filter((c) => c.assignedTo?._id === user._id && !c.completed)
         .map((c) => ({
@@ -68,18 +63,15 @@ const Dashboard = () => {
           done: c.completed,
         }));
 
-      // Overdue chores — assigned to anyone, past due date
-      const overdue = allChores.filter((c) => {
-        if (!c.dueDate || c.completed) return false;
-        return new Date(c.dueDate) < today;
-      }).map((c) => ({
-        id: c._id,
-        member: c.assignedTo?.username || "Unknown",
-        days: Math.abs(getDaysRemaining(c.dueDate)),
-        label: c.title,
-      }));
+      const overdue = allChores
+        .filter((c) => c.dueDate && !c.completed && new Date(c.dueDate) < today)
+        .map((c) => ({
+          id: c._id,
+          member: c.assignedTo?.username || "Unknown",
+          days: Math.abs(getDaysRemaining(c.dueDate)),
+          label: c.title,
+        }));
 
-      // Build schedule — next 5 days
       const next5Days = Array.from({ length: 5 }, (_, i) => {
         const d = new Date();
         d.setDate(today.getDate() + i);
@@ -88,20 +80,21 @@ const Dashboard = () => {
 
       const scheduleRows = next5Days.map((day, idx) => {
         const formatted = formatScheduleDate(day);
-        const dayChores = allChores.filter((c) => {
-          if (!c.dueDate) return false;
-          const due = new Date(c.dueDate);
-          return (
-            due.getDate() === day.getDate() &&
-            due.getMonth() === day.getMonth() &&
-            due.getFullYear() === day.getFullYear()
-          );
-        }).map((c) => ({
-          member: c.assignedTo?.username?.[0]?.toUpperCase() || "?",
-          label: c.title,
-          color: avatarColors[idx % avatarColors.length],
-        }));
-
+        const dayChores = allChores
+          .filter((c) => {
+            if (!c.dueDate) return false;
+            const due = new Date(c.dueDate);
+            return (
+              due.getDate() === day.getDate() &&
+              due.getMonth() === day.getMonth() &&
+              due.getFullYear() === day.getFullYear()
+            );
+          })
+          .map((c) => ({
+            member: c.assignedTo?.username?.[0]?.toUpperCase() || "?",
+            label: c.title,
+            color: avatarColors[idx % avatarColors.length],
+          }));
         return { ...formatted, chores: dayChores };
       });
 
@@ -139,8 +132,7 @@ const Dashboard = () => {
     );
   }
 
-  // If user has no house yet
-  if (!house) {
+  if (!houses.length) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
         <div className="text-center">
@@ -160,18 +152,34 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#f5ede3] px-8 py-8">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
 
-        {/* Greeting */}
         <h1 className="text-3xl font-bold text-[#4e3728]">
           hello, {user?.username}!
         </h1>
 
-        {/* Main Grid */}
+        {/* House tabs — only shown if user is in multiple houses */}
+        {houses.length > 1 && (
+          <div className="flex gap-2 flex-wrap">
+            {houses.map((h, idx) => (
+              <button
+                key={h._id}
+                onClick={() => setActiveHouseIndex(idx)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                  activeHouseIndex === idx
+                    ? "bg-[#7a9e7e] text-white"
+                    : "bg-white border border-[#e8d5c4] text-[#4e3728] hover:bg-[#f0e0d0]"
+                }`}
+              >
+                {h.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex flex-row gap-6 items-start">
 
           {/* ── Left Column ── */}
           <div className="flex flex-col gap-4 w-72 shrink-0">
 
-            {/* Upcoming Chores */}
             <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 upcoming chores
@@ -202,7 +210,6 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Overdue Chores */}
             <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 overdue chores
@@ -228,26 +235,19 @@ const Dashboard = () => {
           {/* ── Right Column: Schedule ── */}
           <div className="flex flex-col gap-3 flex-1">
             <div className="bg-white border border-[#e8d5c4] rounded-xl overflow-hidden">
-
-              {/* House Name Header */}
               <div className="text-center text-base font-semibold text-[#4e3728] py-3 border-b border-[#e8d5c4]">
-                {houseName || "your house"}
+                {activeHouse?.name || "your house"}
               </div>
-
-              {/* Schedule Rows */}
               {schedule.map((row, idx) => (
                 <div
                   key={idx}
                   className="flex flex-row items-center border-b border-[#e8d5c4] last:border-b-0 min-h-[56px]"
                 >
-                  {/* Date */}
                   <div className="w-16 shrink-0 flex flex-col items-center justify-center py-2 border-r border-[#e8d5c4]">
                     <span className="text-xl font-bold text-[#4e3728] leading-none">{row.date}</span>
                     <span className="text-[10px] text-[#a0816a] uppercase tracking-wide">{row.month}</span>
                     <span className="text-[10px] text-[#a0816a]">{row.day}</span>
                   </div>
-
-                  {/* Chores for that day */}
                   <div className="flex flex-row flex-wrap gap-2 px-4 py-2">
                     {row.chores.map((chore, i) => (
                       <div key={i} className="flex flex-row items-center gap-2">
