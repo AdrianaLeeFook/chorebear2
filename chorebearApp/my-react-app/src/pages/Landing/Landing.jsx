@@ -8,7 +8,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, joinHouse } = useAuth();       // never uses joinHouse. worth cleaning this up
+  const { login, joinHouse, house } = useAuth(); // ← add house here
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,9 +35,24 @@ export default function Landing() {
         setError(data.message || "Invalid credentials.");
         return;
       }
+// Save token so auth headers work across pages
+if (data.token) localStorage.setItem("token", data.token);
 
-      login(data);
-      navigate("/dashboard");
+login(data);
+
+// Only fetch membership if not already in context
+const memberRes = await fetch(`http://localhost:8080/api/memberships/user/${data._id}`);
+const memberships = await memberRes.json();
+console.log("Memberships:", memberships); // ← add this
+console.log("First membership:", memberships[0]);
+console.log("House from membership:", memberships[0].house);
+
+if (memberships.length > 0 && !house) { // ← add !house check
+  joinHouse(memberships[0].house);
+}
+
+navigate("/dashboard");
+
     } catch (err) {
       console.log("Error:", err); // ← add this
       setError("Could not connect to server.");

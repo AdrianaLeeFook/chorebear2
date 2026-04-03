@@ -3,8 +3,15 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [houses, setHouses] = useState([]);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
+  
+  const [house, setHouses] = useState(() => {
+  const saved = localStorage.getItem("house");
+  return saved ? JSON.parse(saved) : null;
+});
 
   // Rehydrate on page refresh
   useEffect(() => {
@@ -39,18 +46,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const joinHouse = (houseData) => {
-    setHouses(prev => [...prev, houseData]);
+    setHouses(houseData);
+    localStorage.setItem("house", JSON.stringify(houseData));
   };
+  
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("house");
     localStorage.removeItem("user");
     setUser(null);
     setHouses([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, houses, login, logout, joinHouse }}>
+    <AuthContext.Provider value={{ user, house, login, logout, joinHouse }}>
       {children}
     </AuthContext.Provider>
   );

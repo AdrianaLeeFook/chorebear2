@@ -25,7 +25,7 @@ const avatarColors = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, houses } = useAuth();
+  const { user, house } = useAuth();
 
   const [activeHouseIndex, setActiveHouseIndex] = useState(0);
   const [chores, setChores] = useState([]);
@@ -33,7 +33,7 @@ const Dashboard = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const activeHouse = houses[activeHouseIndex] || null;
+  const activeHouse = house[activeHouseIndex] || null;
 
   // Re-fetch whenever the selected house changes
   useEffect(() => {
@@ -132,7 +132,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!houses.length) {
+  if (!house.length) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
         <div className="text-center">
@@ -157,9 +157,9 @@ const Dashboard = () => {
         </h1>
 
         {/* House tabs — only shown if user is in multiple houses */}
-        {houses.length > 1 && (
+        {house.length > 1 && (
           <div className="flex gap-2 flex-wrap">
-            {houses.map((h, idx) => (
+            {house.map((h, idx) => (
               <button
                 key={h._id}
                 onClick={() => setActiveHouseIndex(idx)}
