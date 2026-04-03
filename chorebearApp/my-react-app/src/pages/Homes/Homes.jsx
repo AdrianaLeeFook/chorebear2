@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
 const Homes = () => {
-  //login 
+  
   const { user, setHouse } = useAuth();
 
   //dummy user for testing back end stuff on my end
@@ -17,10 +17,10 @@ const Homes = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  //Fetch user's homes when the component starts or if the user changes
+  //Fetch user's homes when the component starts or the user changes
   useEffect(() => {
     const fetchUserHomes = async () => {
-      //shouldnt ever see this with the protected pages thing
+      // If no user is logged in, stop loading and return early
       if (!user) {
         setIsLoading(false);
         return;
@@ -32,7 +32,7 @@ const Homes = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
-            //token stuff but we are probably not doing this method, delete later
+            //token stuff if we end up doing that
             //"Authorization": `Bearer ${localStorage.getItem("token")}` 
           }
         });
@@ -43,11 +43,10 @@ const Homes = () => {
 
         const memberData = await res.json();
         
-        //backend returns Memberships. extract 'house' object from each membership.
+        // The backend returns Memberships. We need to extract the populated 'house' object from each membership.
         const houseData = memberData
           .map(membership => membership.house)
-          //filter out null values just in case
-          .filter(house => house !== null); 
+          .filter(house => house !== null); // Filter out any nulls just in case a house was deleted
 
         setHomes(houseData);
       } catch (err) {
@@ -65,7 +64,7 @@ const Homes = () => {
 
   const handleSelectHome = (home) => {
     //setHouse(home);
-    navigate('/dashboard');
+    navigate('/dashboard', { state: { selectedHouseId: home._id } });
   };
 
   //username display
@@ -88,11 +87,11 @@ const Homes = () => {
           </Link>
         </div>
 
-        {/*home main section*/}
+        {/* Homes Display Section */}
         <div className="flex flex-col items-center w-full max-w-md">
           <h1 className="text-4xl font-semibold text-[#5c4b3f] mb-6">my homes</h1>
           
-          {/*List of homes*/}
+          {/* Houses displayed dynamically from the database */}
           <div className="space-y-4 mb-8 w-full text-center">
             {isLoading ? (
               <div className="p-4 text-[#5c4b3f]/70 italic">Loading your homes...</div>
@@ -115,10 +114,10 @@ const Homes = () => {
             )}
           </div>
 
-          {/*edit/create buttons*/}
+          {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <Link 
-              to="/homes/edit" 
+              to="/EditMyHomes" 
               className="flex-1 bg-[#a3b1a2] text-[#5c4b3f] text-sm font-medium py-2 px-4 rounded-full text-center shadow hover:brightness-95 transition duration-200"
             >
               edit my homes
