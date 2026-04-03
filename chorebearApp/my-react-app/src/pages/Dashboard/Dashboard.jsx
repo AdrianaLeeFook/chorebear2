@@ -27,27 +27,23 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, house } = useAuth();
 
-  const [activeHouseIndex, setActiveHouseIndex] = useState(0);
   const [chores, setChores] = useState([]);
   const [overdueChores, setOverdueChores] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const activeHouse = house[activeHouseIndex] || null;
-
-  // Re-fetch whenever the selected house changes
   useEffect(() => {
-    if (!user || !activeHouse) {
+    if (!user || !house) {
       setLoading(false);
       return;
     }
-    fetchDashboardData(activeHouse);
-  }, [user, activeHouse]);
+    fetchDashboardData(house);
+  }, [user, house]);
 
-  const fetchDashboardData = async (house) => {
+  const fetchDashboardData = async (activeHouse) => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`, {
+      const res = await fetch(`http://localhost:8080/api/chores/house/${activeHouse._id}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
       });
       const allChores = await res.json();
@@ -132,7 +128,8 @@ const Dashboard = () => {
     );
   }
 
-  if (!house.length) {
+  // No house yet
+  if (!house) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
         <div className="text-center">
@@ -155,25 +152,6 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-[#4e3728]">
           hello, {user?.username}!
         </h1>
-
-        {/* House tabs — only shown if user is in multiple houses */}
-        {house.length > 1 && (
-          <div className="flex gap-2 flex-wrap">
-            {house.map((h, idx) => (
-              <button
-                key={h._id}
-                onClick={() => setActiveHouseIndex(idx)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  activeHouseIndex === idx
-                    ? "bg-[#7a9e7e] text-white"
-                    : "bg-white border border-[#e8d5c4] text-[#4e3728] hover:bg-[#f0e0d0]"
-                }`}
-              >
-                {h.name}
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="flex flex-row gap-6 items-start">
 
@@ -236,7 +214,7 @@ const Dashboard = () => {
           <div className="flex flex-col gap-3 flex-1">
             <div className="bg-white border border-[#e8d5c4] rounded-xl overflow-hidden">
               <div className="text-center text-base font-semibold text-[#4e3728] py-3 border-b border-[#e8d5c4]">
-                {activeHouse?.name || "your house"}
+                {house?.name || "your house"}
               </div>
               {schedule.map((row, idx) => (
                 <div

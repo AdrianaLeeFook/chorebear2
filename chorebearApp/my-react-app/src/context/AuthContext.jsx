@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -7,56 +7,35 @@ export const AuthProvider = ({ children }) => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
-  
-  const [house, setHouses] = useState(() => {
-  const saved = localStorage.getItem("house");
-  return saved ? JSON.parse(saved) : null;
-});
 
-  // Rehydrate on page refresh
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    if (storedUser && token) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      fetchHouses(parsedUser._id, token);
-    }
-  }, []);
+  const [house, setHouse] = useState(() => {
+    const saved = localStorage.getItem("house");
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed[0] : parsed;
+  });
 
-  const fetchHouses = async (userId, token) => {
-    try {
-      const res = await fetch(`http://localhost:8080/api/memberships/user/${userId}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      const memberships = await res.json();
-      if (res.ok) {
-        setHouses(memberships.map(m => m.house));
-      }
-    } catch (err) {
-      console.error("Failed to fetch houses:", err);
-    }
-  };
-
-  const login = async (userData) => {
+  const login = (userData) => {
     localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
-    await fetchHouses(userData._id, userData.token);
+    // Clear old house so new account starts fresh
+    localStorage.removeItem("house");
+    setHouse(null);
   };
 
   const joinHouse = (houseData) => {
-    setHouses(houseData);
-    localStorage.setItem("house", JSON.stringify(houseData));
+    const single = Array.isArray(houseData) ? houseData[0] : houseData;
+    setHouse(single);
+    localStorage.setItem("house", JSON.stringify(single));
   };
-  
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("house");
     localStorage.removeItem("user");
     setUser(null);
-    setHouses([]);
+    setHouse(null);
   };
 
   return (

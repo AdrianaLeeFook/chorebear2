@@ -8,7 +8,7 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, joinHouse, house } = useAuth(); // ← add house here
+  const { login, joinHouse } = useAuth(); // ← add house here
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -43,13 +43,13 @@ login(data);
 // Only fetch membership if not already in context
 const memberRes = await fetch(`http://localhost:8080/api/memberships/user/${data._id}`);
 const memberships = await memberRes.json();
-console.log("Memberships:", memberships); // ← add this
+
+if (memberships.length > 0) {
+  joinHouse(memberships[0].house); 
+}
+console.log("Memberships:", memberships); 
 console.log("First membership:", memberships[0]);
 console.log("House from membership:", memberships[0].house);
-
-if (memberships.length > 0 && !house) { // ← add !house check
-  joinHouse(memberships[0].house);
-}
 
 navigate("/dashboard");
 
