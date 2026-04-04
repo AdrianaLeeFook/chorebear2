@@ -1,5 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 
 // ─── Page Imports ────────────────────────────────────────────────────────────
 // Each teammate should uncomment their import once their page is built.
@@ -14,7 +15,7 @@ import AddAssignChores     from "./pages/AddAssignChores/AddAssignChores";
 import EditSpecificChore   from "./pages/EditSpecificChore/EditSpecificChore";
 import CreateNewChore      from "./pages/CreateNewChore/CreateNewChore";
 import EditMyHomes         from "./pages/EditMyHomes/EditMyHomes";
-import Homes         from "./pages/Homes/Homes";
+import Homes               from "./pages/Homes/Homes";
 
 import SelectHomeForEdit   from "./pages/SelectHomeForEdit/SelectHomeForEdit";
 
@@ -23,6 +24,11 @@ import Dashboard  from "./pages/Dashboard/Dashboard";
 import Settings   from "./pages/Settings/Settings";
 import Navbar     from "./components/Navbar";
 
+// ─── Protected Route ──────────────────────────────────────────────────────────
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/" />;
+};
 
 // ─── Placeholder component for unbuilt pages ─────────────────────────────────
 const Placeholder = ({ name }) => (
@@ -36,38 +42,47 @@ const Placeholder = ({ name }) => (
 function App() {
   return (
     <Router>
-      
-      <Navbar />
+      <AuthProvider>
+        <Navbar />
 
-      <Routes>
-        {/* ── Public routes (no auth needed) ── */}
-        <Route path="/"               element={<Landing />} />
-        <Route path="/Landing" element={<Landing />} />
-        <Route path="/CreateAccount"       element={<CreateAccount/>} />
+        <Routes>
+          {/* ── Public routes (no auth needed) ── */}
+          <Route path="/"                         element={<Landing />} />
+          <Route path="/Landing"                  element={<Landing />} />
+          <Route path="/CreateAccount"            element={<CreateAccount/>} />
 
-        {/* ── Onboarding flow ── */}
-        <Route path="/JoinOrCreateHome" element={<JoinOrCreateHome />} />
-        <Route path="/JoinHome"      element={<JoinHome />} />
-        <Route path="/CreateHome"    element={<CreateHome />} />
-        <Route path="/JoinCreateSuccess"     element={<JoinCreateSuccess />} />
 
-        {/* ── Main app routes ── */}
-        <Route path="/dashboard"      element={<Dashboard />} />
-        <Route path="/SelectHomeForEdit"          element={<SelectHomeForEdit />} />
-        <Route path="/settings"       element={<Settings />} />
+          {/* Pages underneath are all protected. This keep people who are NOT logged in from accessing the other pages. User MUST be logged in to see them */}
+          {/* ── Onboarding ── */}
+          <Route path="/JoinOrCreateHome"  element={<ProtectedRoute><JoinOrCreateHome /></ProtectedRoute>} />
+          <Route path="/JoinHome"          element={<ProtectedRoute><JoinHome /></ProtectedRoute>} />
+          <Route path="/CreateHome"        element={<ProtectedRoute><CreateHome /></ProtectedRoute>} />
+          <Route path="/JoinCreateSuccess" element={<ProtectedRoute><JoinCreateSuccess /></ProtectedRoute>} />
 
-        {/* ── Chore management ── */}
-        <Route path="/AddAssignChores"          element={<AddAssignChores/>} />
-        <Route path="/EditSpecificChore"   element={<EditSpecificChore />} />
-        <Route path="/CreateNewChore"             element={<CreateNewChore />} />
+          {/* ── Main app ── */}
+          <Route path="/dashboard"         element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/settings"          element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
-        {/* ── Home management ── */}
-        <Route path="/homes"   element={<Homes />} />
-        <Route path="/EditMyHomes"     element={<EditMyHomes />} />
+          {/* ── Home management ── */}
+          <Route path="/homes"             element={<ProtectedRoute><Homes /></ProtectedRoute>} />
+          <Route path="/EditMyHomes"       element={<ProtectedRoute><EditMyHomes /></ProtectedRoute>} />
+          <Route path="/SelectHomeForEdit" element={<ProtectedRoute><SelectHomeForEdit /></ProtectedRoute>} />
 
-        {/* ── 404 fallback ── */}
-        <Route path="*" element={<Placeholder name="404 — Page Not Found" />} />
-      </Routes>
+          {/* ── Chore management ── */}
+          {/* houseId tells AddAssignChores which house's members/chores to load */}
+          <Route path="/houses/:houseId/chores"    element={<ProtectedRoute><AddAssignChores /></ProtectedRoute>} />
+
+          {/* choreId tells EditSpecificChore which chore to fetch from the backend */}
+          <Route path="/chores/:choreId/edit"      element={<ProtectedRoute><EditSpecificChore /></ProtectedRoute>} />
+
+          {/* memberId + houseId are passed as query params: /chores/new?memberId=...&houseId=... */}
+          <Route path="/chores/new"                element={<ProtectedRoute><CreateNewChore /></ProtectedRoute>} />
+
+
+          {/* ── 404 fallback ── */}
+          <Route path="*" element={<Placeholder name="404 — Page Not Found" />} />
+        </Routes>
+      </AuthProvider>
     </Router>
   );
 }

@@ -1,15 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function JoinHome() {
   const navigate = useNavigate();
+  // const { user, joinHouse } = useAuth();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const inputsRef = useRef([]);
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
-  const currentUserId = currentUser?._id;
+  const {user} = useAuth();
+  const currentUserId = user?._id;
 
   const handleChange = (value, index) => {
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").slice(-1).toUpperCase();
@@ -41,6 +44,7 @@ export default function JoinHome() {
       return;
     }
 
+
     setError("");
     setLoading(true);
 
@@ -59,6 +63,7 @@ export default function JoinHome() {
       const data = await res.json();
 
       if (!res.ok) {
+
         throw new Error(data.message || "invalid home code");
       }
 
@@ -92,6 +97,7 @@ export default function JoinHome() {
           join a home
         </h1>
 
+
         <p
           className="text-[#6b4b3e] mb-8"
           style={{
@@ -102,7 +108,7 @@ export default function JoinHome() {
           enter home code below:
         </p>
 
-        <div className="flex gap-6 mb-10">
+        <div className="flex gap-4 mb-10">
           {code.map((char, index) => (
             <input
               key={index}

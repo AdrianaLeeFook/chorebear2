@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const House = require('../models/House');
+const Membership = require('../models/Membership');
+
+// Generate a random 6 character code
+const generateCode = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
 
 // helper function to generate a random 6-character code
 function generateHomeCode() {
@@ -18,6 +24,7 @@ function generateHomeCode() {
 router.post('/', async (req, res) => {
   try {
     const { name, createdBy } = req.body;
+
 
     if (!name || !name.trim()) {
       return res.status(400).json({ message: 'home name is required' });
@@ -40,8 +47,16 @@ router.post('/', async (req, res) => {
       code,
       createdBy,
     });
-
     await house.save();
+
+    // Automatically make the creator an admin member
+    const membership = new Membership({
+      user: createdBy,
+      house: house._id,
+      role: 'admin',
+    });
+    await membership.save();
+
     res.status(201).json(house);
   } catch (err) {
     console.error('error creating house:', err);
@@ -49,25 +64,32 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Join a house by code
 router.post('/join', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, userId } = req.body;
 
     if (!code || !code.trim()) {
       return res.status(400).json({ message: 'home code is required' });
     }
 
-    const house = await House.findOne({ code: code.trim().toUpperCase() });
-
-    if (!house) {
-      return res.status(404).json({ message: 'invalid home code' });
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
     }
 
-    res.status(200).json({
-      message: 'home found',
-      home: house,
+    const house = await House.findOne({ code: code.trim().toUpperCase() });
+    if (!house) return res.status(404).json({ message: 'invalid home code' });
+
+    const existing = await Membership.findOne({ user: userId, house: house._id });
+    if (existing) return res.status(400).json({ message: 'Already a member' });
+
+    const membership = new Membership({
+      user: userId,
+      house: house._id,
+      role: 'member',
     });
+    await membership.save();
+
+    res.status(201).json({ home: house, membership });
   } catch (err) {
     console.error('error joining house:', err);
     res.status(500).json({ message: err.message });

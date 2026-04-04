@@ -1,15 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function CreateHome() {
   const navigate = useNavigate();
 
   const [homeName, setHomeName] = useState("");
   const [error, setError] = useState("");
+
   const [loading, setLoading] = useState(false);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
-  const currentUserId = currentUser?._id;
+  // const currentUser = JSON.parse(localStorage.getItem("user"));
+  const {user} = useAuth();
+  const currentUserId = user?._id;
 
   const handleCreate = async () => {
     if (!homeName.trim()) {
@@ -67,6 +70,7 @@ export default function CreateHome() {
             fontSize: "clamp(3.2rem, 5.2vw, 5rem)",
             lineHeight: 1,
             fontWeight: 600,
+            
           }}
         >
           create your home
