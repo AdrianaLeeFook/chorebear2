@@ -1,18 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-// import api from "../api";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
-// // ── Mock Data ──────────────────────────────────────────────────────────────
-// const mockChore = {
-//   id: 1,
-//   icon: "🪣",
-//   title: "mop floor",
-//   description: ["mop kitchen, living room, and bathrooms", "make sure to put mop back in closet"],
-//   time: null,
-//   repeating: false,
-// };
-
-// ── Inline Editable Field ──────────────────────────────────────────────────
+// ── Inline Editable Title ──────────────────────────────────────────────────
 const EditableTitle = ({ value, onChange }) => {
   const [editing, setEditing] = useState(false);
 
@@ -37,41 +27,64 @@ const EditableTitle = ({ value, onChange }) => {
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
-const EditSpecificChore = ({ chore = mockChore }) => {
+const EditSpecificChore = () => {
   const navigate = useNavigate();
-  const [title, setTitle] = useState(chore.title);
-  const [icon] = useState(chore.icon);
-  const [descEditing, setDescEditing] = useState(false);
-  const [description, setDescription] = useState(
-    Array.isArray(chore.description) ? chore.description.join("\n") : chore.description ?? ""
-  );
-  const [time, setTime] = useState(chore.time ?? "");
-  const [timeOpen, setTimeOpen] = useState(false);
-  const [repeating, setRepeating] = useState(chore.repeating ?? false);
-  const [repeatingOpen, setRepeatingOpen] = useState(false);
+  const { choreId } = useParams();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
 
-  // Fetch chore from backend when editing
+  // If choreId is present we're editing, otherwise creating
+  const isCreating = !choreId;
+  const memberId = searchParams.get("memberId");
+  const houseId = searchParams.get("houseId");
+
+  const [title, setTitle] = useState("");
+  const [icon, setIcon] = useState("");
+  const [description, setDescription] = useState("");
+  const [descEditing, setDescEditing] = useState(false);
+  const [time, setTime] = useState("");
+  const [timeOpen, setTimeOpen] = useState(false);
+  const [repeating, setRepeating] = useState(false);
+  const [repeatingOpen, setRepeatingOpen] = useState(false);
+  const [loading, setLoading] = useState(!isCreating); // only load if editing
+  const [error, setError] = useState("");
+
+  // Fetch existing chore when editing
   useEffect(() => {
-    if (isCreating || choreFromProps) return;
-    api.get(`/chores/${choreId}`)
-      .then(res => {
-        const c = res.data;
-        setTitle(c.title);
-        setDescription(Array.isArray(c.description) ? c.description.join("\n") : c.description ?? "");
-        setTime(c.time ?? "");
-        setRepeating(c.repeating ?? false);
-        setLoading(false);
-      })
-      .catch(() => {
+    if (isCreating) return;
+
+    const fetchChore = async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/api/chores/${choreId}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        setTitle(data.title ?? "");
+        setIcon(data.icon ?? "");
+        setDescription(
+          Array.isArray(data.description)
+            ? data.description.join("\n")
+            : data.description ?? ""
+        );
+        setTime(data.time ?? "");
+        setRepeating(data.repeating ?? false);
+      } catch (err) {
         setError("Chore not found");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchChore();
   }, [choreId]);
 
   const handleSave = async () => {
     if (!title.trim()) return;
+
     const payload = {
       title,
+      icon,
       description: description.split("\n").filter(Boolean),
       time: time || null,
       repeating,
@@ -79,15 +92,30 @@ const EditSpecificChore = ({ chore = mockChore }) => {
 
     try {
       if (isCreating) {
-        // Create mode — include houseId and assignedTo
-        await api.post("/chores", {
-          ...payload,
-          houseId,
-          assignedTo: memberId,
+        const res = await fetch("http://localhost:8080/api/chores", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify({
+            ...payload,
+            house: houseId,
+            assignedTo: memberId,
+            createdBy: user._id,
+          }),
         });
+        if (!res.ok) throw new Error();
       } else {
-        // Edit mode — patch existing chore
-        await api.patch(`/chores/${choreId}`, payload);
+        const res = await fetch(`http://localhost:8080/api/chores/${choreId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error();
       }
       navigate(-1);
     } catch (err) {
@@ -98,14 +126,18 @@ const EditSpecificChore = ({ chore = mockChore }) => {
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${title}"?`)) return;
     try {
-      await api.delete(`/chores/${choreId}`);
+      const res = await fetch(`http://localhost:8080/api/chores/${choreId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (!res.ok) throw new Error();
       navigate(-1);
     } catch (err) {
       setError("Failed to delete chore");
     }
   };
 
-  if (loading) return <p className="text-center text-[#4e3728] mt-10">Loading...</p>;
+  if (loading) return <p className="text-center text-[#4e3728] mt-10">loading...</p>;
   if (error) return <p className="text-center text-red-500 mt-10">{error}</p>;
 
   return (
@@ -131,7 +163,6 @@ const EditSpecificChore = ({ chore = mockChore }) => {
               ✏️
             </button>
           </div>
-
           {descEditing ? (
             <textarea
               autoFocus
@@ -204,11 +235,11 @@ const EditSpecificChore = ({ chore = mockChore }) => {
                   <button
                     key={opt}
                     onClick={() => { setRepeating(opt === "yes"); setRepeatingOpen(false); }}
-                    className={`px-4 py-1.5 rounded-full text-sm border transition-colors
-                      ${(repeating ? "yes" : "no") === opt
+                    className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
+                      (repeating ? "yes" : "no") === opt
                         ? "bg-[#7a9e7e] text-white border-[#7a9e7e]"
                         : "bg-[#e2ddd8] text-[#4e3728] border-[#c9b8aa] hover:bg-[#d8d0c8]"
-                      }`}
+                    }`}
                   >
                     {opt}
                   </button>
@@ -226,7 +257,6 @@ const EditSpecificChore = ({ chore = mockChore }) => {
           >
             {isCreating ? "create chore" : "save changes"}
           </button>
-          {/* Only show delete when editing an existing chore */}
           {!isCreating && (
             <button
               onClick={handleDelete}

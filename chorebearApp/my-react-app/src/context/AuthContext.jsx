@@ -5,6 +5,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [houses, setHouses] = useState([]);
+  const [activeHouseIndex, setActiveHouseIndex] = useState(0);
 
   // Rehydrate on page refresh
   useEffect(() => {
@@ -47,10 +48,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     setUser(null);
     setHouses([]);
+    setActiveHouseIndex(0);
   };
 
   return (
-    <AuthContext.Provider value={{ user, houses, login, logout, joinHouse }}>
+    <AuthContext.Provider value={{ user, houses, activeHouseIndex, setActiveHouseIndex, login, logout, joinHouse }}>
       {children}
     </AuthContext.Provider>
   );
