@@ -31,18 +31,21 @@ const Dashboard = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const activeHouse = houses[activeHouseIndex] || null;
+
+  // Re-fetch whenever the selected house changes
   useEffect(() => {
-    if (!user || !house) {
+    if (!user || !activeHouse) {
       setLoading(false);
       return;
     }
-    fetchDashboardData(house);
-  }, [user, house]);
+    fetchDashboardData(activeHouse);
+  }, [user, activeHouse]);
 
-  const fetchDashboardData = async (activeHouse) => {
+  const fetchDashboardData = async (house) => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8080/api/chores/house/${activeHouse._id}`, {
+      const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
       });
       const allChores = await res.json();
@@ -127,8 +130,7 @@ const Dashboard = () => {
     );
   }
 
-  // No house yet
-  if (!house) {
+  if (!houses.length) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
         <div className="text-center">
@@ -151,6 +153,25 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-[#4e3728]">
           hello, {user?.username}!
         </h1>
+
+        {/* House tabs — only shown if user is in multiple houses */}
+        {houses.length > 1 && (
+          <div className="flex gap-2 flex-wrap">
+            {houses.map((h, idx) => (
+              <button
+                key={h._id}
+                onClick={() => setActiveHouseIndex(idx)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                  activeHouseIndex === idx
+                    ? "bg-[#7a9e7e] text-white"
+                    : "bg-white border border-[#e8d5c4] text-[#4e3728] hover:bg-[#f0e0d0]"
+                }`}
+              >
+                {h.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-row gap-6 items-start">
 
@@ -213,7 +234,7 @@ const Dashboard = () => {
           <div className="flex flex-col gap-3 flex-1">
             <div className="bg-white border border-[#e8d5c4] rounded-xl overflow-hidden">
               <div className="text-center text-base font-semibold text-[#4e3728] py-3 border-b border-[#e8d5c4]">
-                {house?.name || "your house"}
+                {activeHouse?.name || "your house"}
               </div>
               {schedule.map((row, idx) => (
                 <div
