@@ -11,6 +11,9 @@ const Settings = () => {
 
   const handleLogout = () => {
     navigate("/");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("house");
   };
 
   const handleProfilePictureChange = (e) => {
