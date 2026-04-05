@@ -14,14 +14,31 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [activeHouseIndex, setActiveHouseIndex] = useState(0);
+  const [loadingAuth, setLoadingAuth] = useState(false);
 
-  const login = (userData) => {
+  const fetchAndSetHouses = async (userId, token) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/memberships/user/${userId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const memberships = await res.json();
+      if (res.ok) {
+        const fetchedHouses = memberships.map(m => m.house);
+        setHouses(fetchedHouses);
+        localStorage.setItem("houses", JSON.stringify(fetchedHouses));
+      }
+    } catch (err) {
+      console.error("Failed to fetch houses:", err);
+    }
+  };
+
+  const login = async (userData) => {
     localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
-    // Clear houses on new login
-    setHouses([]);
-    localStorage.removeItem("houses");
+    setLoadingAuth(true);
+    await fetchAndSetHouses(userData._id, userData.token);
+    setLoadingAuth(false);
   };
 
   const logout = () => {
@@ -35,7 +52,6 @@ export const AuthProvider = ({ children }) => {
 
   const joinHouse = (houseData) => {
     setHouses(prev => {
-      // Prevent duplicates
       const exists = prev.find(h => h._id === houseData._id);
       if (exists) return prev;
       const updated = [...prev, houseData];
@@ -53,13 +69,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Convenience getter for current house
   const house = houses[activeHouseIndex] || null;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, houses, house, activeHouseIndex, 
-      setActiveHouseIndex, login, logout, joinHouse, setActiveHouse 
+    <AuthContext.Provider value={{
+      user, houses, house, activeHouseIndex,
+      setActiveHouseIndex, login, logout, joinHouse, setActiveHouse, loadingAuth
     }}>
       {children}
     </AuthContext.Provider>

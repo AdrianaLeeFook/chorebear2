@@ -25,13 +25,14 @@ const avatarColors = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, houses, activeHouseIndex, setActiveHouseIndex } = useAuth();
+  const { user, houses, activeHouseIndex, setActiveHouseIndex, loadingAuth } = useAuth();
   const [chores, setChores] = useState([]);
   const [overdueChores, setOverdueChores] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const activeHouse = houses[activeHouseIndex] || null;
+
 
   // Re-fetch whenever the selected house changes
   useEffect(() => {
@@ -122,7 +123,8 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) {
+  // takes a moment to load info of user
+  if (loadingAuth || loading) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
         <p className="text-[#4e3728] text-lg">loading...</p>
