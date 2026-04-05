@@ -8,38 +8,59 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [house, setHouse] = useState(() => {
-    const saved = localStorage.getItem("house");
-    if (!saved) return null;
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed[0] : parsed;
+  const [houses, setHouses] = useState(() => {
+    const saved = localStorage.getItem("houses");
+    return saved ? JSON.parse(saved) : [];
   });
+
+  const [activeHouseIndex, setActiveHouseIndex] = useState(0);
 
   const login = (userData) => {
     localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
-    // Clear old house so new account starts fresh
-    localStorage.removeItem("house");
-    setHouse(null);
-  };
-
-  const joinHouse = (houseData) => {
-    const single = Array.isArray(houseData) ? houseData[0] : houseData;
-    setHouse(single);
-    localStorage.setItem("house", JSON.stringify(single));
+    // Clear houses on new login
+    setHouses([]);
+    localStorage.removeItem("houses");
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("house");
+    localStorage.removeItem("houses");
     localStorage.removeItem("user");
     setUser(null);
-    setHouse(null);
+    setHouses([]);
+    setActiveHouseIndex(0);
   };
 
+  const joinHouse = (houseData) => {
+    setHouses(prev => {
+      // Prevent duplicates
+      const exists = prev.find(h => h._id === houseData._id);
+      if (exists) return prev;
+      const updated = [...prev, houseData];
+      localStorage.setItem("houses", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const setActiveHouse = (house) => {
+    const idx = houses.findIndex(h => h._id === house._id);
+    if (idx !== -1) setActiveHouseIndex(idx);
+    else {
+      joinHouse(house);
+      setActiveHouseIndex(houses.length);
+    }
+  };
+
+  // Convenience getter for current house
+  const house = houses[activeHouseIndex] || null;
+
   return (
-    <AuthContext.Provider value={{ user, house, login, logout, joinHouse }}>
+    <AuthContext.Provider value={{ 
+      user, houses, house, activeHouseIndex, 
+      setActiveHouseIndex, login, logout, joinHouse, setActiveHouse 
+    }}>
       {children}
     </AuthContext.Provider>
   );

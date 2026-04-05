@@ -37,6 +37,7 @@ export default function CreateHome() {
         body: JSON.stringify({
           name: homeName.trim(),
           createdBy: currentUserId,
+          role: "admin",
         }),
       });
 

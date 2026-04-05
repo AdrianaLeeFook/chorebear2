@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "../logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { houses, activeHouseIndex } = useAuth();
 
-  // Hide navbar on pre-login pages
+  const activeHouse = houses?.[activeHouseIndex];
+
   const hideOn = ["/", "/Landing", "/CreateAccount", "/JoinOrCreateHome", "/JoinHome", "/CreateHome", "/JoinCreateSuccess"];
   if (hideOn.includes(location.pathname)) return null;
 
   const navLinks = [
-    { label: "chores", path: "/houses/:houseId/chores" },
+    { label: "chores", path: activeHouse ? `/houses/${activeHouse._id}/chores` : "/dashboard" },
     { label: "profile", path: "/homes" },
     { label: "settings", path: "/settings" },
   ];
@@ -22,14 +25,13 @@ const Navbar = () => {
     <nav className="w-full bg-[#f5ede3] border-b border-[#e8d5c4]">
       <div className="max-w-5xl mx-auto px-6 py-3 flex flex-row items-center justify-between">
 
-        {/* Logo */}
         <Link to="/dashboard" className="flex flex-row items-center gap-2 group">
-        <img src={logo} alt="chorebear logo" className="h-10 w-auto" />          <span className="text-[#6b4f3a] font-semibold text-base tracking-wide group-hover:text-[#4e3728] transition-colors">
+          <img src={logo} alt="chorebear logo" className="h-10 w-auto" />
+          <span className="text-[#6b4f3a] font-semibold text-base tracking-wide group-hover:text-[#4e3728] transition-colors">
             chorebear
           </span>
         </Link>
 
-        {/* Desktop Nav Links */}
         <ul className="hidden sm:flex flex-row items-center gap-6 list-none m-0 p-0">
           {navLinks.map(({ label, path }) => (
             <li key={label}>
@@ -47,7 +49,6 @@ const Navbar = () => {
           ))}
         </ul>
 
-        {/* Mobile Hamburger */}
         <button
           className="sm:hidden text-[#6b4f3a] focus:outline-none"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -63,7 +64,6 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Dropdown */}
       {menuOpen && (
         <ul className="sm:hidden flex flex-col gap-2 px-6 pb-3 list-none m-0 p-0">
           {navLinks.map(({ label, path }) => (

@@ -8,56 +8,61 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, joinHouse } = useAuth(); 
-
+  const { login, joinHouse } = useAuth();       // never uses joinHouse. worth cleaning this up
+  
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.");
+  if (!username.trim() || !password.trim()) {
+    setError("Please enter both username and password.");
+    return;
+  }
+
+  try {
+    // Step 1 — Login
+    const res = await fetch("http://localhost:8080/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.message || "Invalid credentials.");
       return;
     }
 
-    try {
-      console.log("Sending:", { username, password }); // ← add this
-      const res = await fetch("http://localhost:8080/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+    // Step 2 — Save token and user to localStorage manually
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
 
-      console.log("Status:", res.status); // ← add this
-      const data = await res.json();
-      console.log("Response:", data); // ← add this
-
-      if (!res.ok) {
-        setError(data.message || "Invalid credentials.");
-        return;
-      }
-// Save token so auth headers work across pages
-if (data.token) localStorage.setItem("token", data.token);
-
-login(data);
-
-// Only fetch membership if not already in context
-const memberRes = await fetch(`http://localhost:8080/api/memberships/user/${data._id}`);
-const memberships = await memberRes.json();
-
-if (memberships.length > 0) {
-  joinHouse(memberships[0].house); 
+    // Step 3 — Fetch membership using the token we just got
+    const memberRes = await fetch(`http://localhost:8080/api/memberships/user/${data._id}`, {
+      headers: { "Authorization": `Bearer ${data.token}` }
+    });
+    const memberships = await memberRes.json();
+    if (memberships.length > 0) {
+    memberships.forEach(m => joinHouse(m.house));
 }
-console.log("Memberships:", memberships); 
-console.log("First membership:", memberships[0]);
-console.log("House from membership:", memberships[0].house);
+    console.log("Memberships:", memberships);
+    console.log("memberships[0]:", memberships[0]);
+    console.log("memberships[0].house:", memberships[0]?.house);
 
-navigate("/dashboard");
-
-    } catch (err) {
-      console.log("Error:", err); // ← add this
-      setError("Could not connect to server.");
+    // Step 4 — Save house to localStorage manually
+    if (memberships.length > 0 && memberships[0].house) {
+      localStorage.setItem("house", JSON.stringify(memberships[0].house));
     }
-  };
+
+    // Step 5 — Now call login() which sets context state
+    login(data);
+
+    navigate("/dashboard");
+  } catch (err) {
+    console.log("Error:", err);
+    setError("Could not connect to server.");
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#d8c7b3]">

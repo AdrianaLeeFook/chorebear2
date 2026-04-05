@@ -25,6 +25,17 @@ router.get('/house/:houseId', async (req, res) => {
   }
 });
 
+// Get a single chore by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const chore = await Chore.findById(req.params.id).populate('assignedTo');
+    if (!chore) return res.status(404).json({ message: 'Chore not found' });
+    res.json(chore);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Update a chore
 router.put('/:id', async (req, res) => {
   try {

@@ -49,6 +49,7 @@ export default function JoinHome() {
     setLoading(true);
 
     try {
+      console.log("currentUserId:", currentUserId);
       const res = await fetch("http://localhost:8080/api/houses/join", {
         method: "POST",
         headers: {
@@ -61,6 +62,8 @@ export default function JoinHome() {
       });
 
       const data = await res.json();
+      console.log("Join response:", data);
+      console.log("Status:", res.status);
 
       if (!res.ok) {
 

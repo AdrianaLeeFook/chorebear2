@@ -4,13 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 const Homes = () => {
   //login 
-  const { user, setHouse } = useAuth();
-
-  //dummy user for testing back end stuff on my end
-  /*const user = {
-    _id: "69ce747430b739de32dbba9d", 
-    username: "TestUser"
-  };*/
+  const { user, joinHouse, setActiveHouse } = useAuth();
+  
 
   const navigate = useNavigate();
   const [homes, setHomes] = useState([]);
@@ -64,9 +59,9 @@ const Homes = () => {
 
 
   const handleSelectHome = (home) => {
-    //setHouse(home);
-    navigate('/dashboard');
-  };
+  setActiveHouse(home); // ← switches to existing house or adds if new
+  navigate('/dashboard');
+};
 
   //username display
   const displayName = user?.username;

@@ -25,8 +25,7 @@ const avatarColors = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, house } = useAuth();
-
+  const { user, houses, activeHouseIndex, setActiveHouseIndex } = useAuth();
   const [chores, setChores] = useState([]);
   const [overdueChores, setOverdueChores] = useState([]);
   const [schedule, setSchedule] = useState([]);
