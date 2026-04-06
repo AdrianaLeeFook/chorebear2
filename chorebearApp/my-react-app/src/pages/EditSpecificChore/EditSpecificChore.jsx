@@ -41,10 +41,7 @@ const EditSpecificChore = () => {
   const [icon, setIcon] = useState("");
   const [description, setDescription] = useState("");
   const [descEditing, setDescEditing] = useState(false);
-  const [time, setTime] = useState("");
-  const [timeOpen, setTimeOpen] = useState(false);
-  const [repeating, setRepeating] = useState(false);
-  const [repeatingOpen, setRepeatingOpen] = useState(false);
+  const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(!isCreating);
   const [error, setError] = useState("");
 
@@ -62,9 +59,13 @@ const EditSpecificChore = () => {
 
         setTitle(data.title ?? "");
         setIcon(data.icon ?? "");
-        setDescription(Array.isArray(data.description) ? data.description.join("\n") : data.description ?? "");
-        setTime(data.time ?? "");
-        setRepeating(data.repeating ?? false);
+        setDescription(
+          Array.isArray(data.description)
+            ? data.description.join("\n")
+            : data.description ?? ""
+        );
+        // Format the date as YYYY-MM-DD for the date input
+        setDueDate(data.dueDate ? new Date(data.dueDate).toISOString().split("T")[0] : "");
       } catch (err) {
         setError("Chore not found");
       } finally {
@@ -82,8 +83,7 @@ const EditSpecificChore = () => {
       title,
       icon,
       description: description.split("\n").filter(Boolean),
-      time: time || null,
-      repeating,
+      dueDate: dueDate || null,
     };
 
     try {
@@ -185,65 +185,23 @@ const EditSpecificChore = () => {
           )}
         </div>
 
-        {/* Set Time */}
+        {/* Due Date */}
         <div className="flex flex-col gap-2">
-          <span className="text-base font-semibold text-[#4e3728]">set time</span>
-          <div>
+          <span className="text-base font-semibold text-[#4e3728]">due date</span>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-fit bg-[#e2ddd8] border border-[#c9b8aa] rounded-xl px-4 py-2 text-sm text-[#4e3728] outline-none"
+          />
+          {dueDate && (
             <button
-              onClick={() => setTimeOpen((v) => !v)}
-              className="flex items-center gap-2 bg-[#e2ddd8] border border-[#c9b8aa] text-[#4e3728] text-sm px-4 py-2 rounded-full"
+              onClick={() => setDueDate("")}
+              className="text-xs text-[#a0816a] hover:text-[#c0392b] w-fit transition-colors"
             >
-              <span className="text-[#c9a98a] text-xs">▶</span>
-              {time || "set time"}
+              clear date
             </button>
-            {timeOpen && (
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="bg-[#e2ddd8] border border-[#c9b8aa] rounded-xl px-3 py-2 text-sm text-[#4e3728] outline-none"
-                />
-                <button
-                  onClick={() => setTimeOpen(false)}
-                  className="text-sm text-[#7a9e7e] font-medium"
-                >
-                  done
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Repeating */}
-        <div className="flex flex-col gap-2">
-          <span className="text-base font-semibold text-[#4e3728]">repeating</span>
-          <div>
-            <button
-              onClick={() => setRepeatingOpen((v) => !v)}
-              className="flex items-center gap-2 bg-[#e2ddd8] border border-[#c9b8aa] text-[#4e3728] text-sm px-4 py-2 rounded-full"
-            >
-              <span className="text-[#c9a98a] text-xs">▶</span>
-              {repeating ? "yes" : "no"}
-            </button>
-            {repeatingOpen && (
-              <div className="mt-2 flex items-center gap-3">
-                {["yes", "no"].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => { setRepeating(opt === "yes"); setRepeatingOpen(false); }}
-                    className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                      (repeating ? "yes" : "no") === opt
-                        ? "bg-[#7a9e7e] text-white border-[#7a9e7e]"
-                        : "bg-[#e2ddd8] text-[#4e3728] border-[#c9b8aa] hover:bg-[#d8d0c8]"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Footer */}
