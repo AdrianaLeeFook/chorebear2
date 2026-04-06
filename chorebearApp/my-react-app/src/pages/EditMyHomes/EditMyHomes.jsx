@@ -1,251 +1,309 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
-/*the routing for this page is really weird and mismatched on app.jsx, set it up however you want to please*/
+const EditMyHomes = () => {
+  const { user } = useAuth();
+  
+  const [homes, setHomes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-const EditHomes = () => {
-  //replace these with stuff from mongodb
-  const [homes, setHomes] = useState([
-    {
-      id: '1', /*database id*/
-      name: 'mojo dojo casa house', /*house name*/
-      code: '19241', /*house code*/
-      createdby: 'jessica', /*house creator/admin*/
-      members: [ /*people in house, replace photo placeholder with whatever we decide to use*/
-        { id: 'm1', name: 'lexi', photo: '[ph]' },
-        { id: 'm2', name: 'freddy', photo: '[ph]' },
-        { id: 'm3', name: 'katie', photo: '[ph]' },
-        { id: 'm4', name: 'jessica', photo: '[ph]' },
-      ],
-      chores: [
-        { id: 'c1', name: 'wash dishes', icon: '[ph]' },
-        { id: 'c2', name: 'clean bathroom', icon: '[ph]' },
-        { id: 'c3', name: 'mop floor', icon: '[ph]' },
-        { id: 'c4', name: 'take out trash', icon: '[ph]' },
-        { id: 'c5', name: 'sweep floor', icon: '[ph]' },
-        { id: 'c6', name: 'wash towels', icon: '[ph]' },
-        { id: 'c7', name: 'wipe counters', icon: '[ph]' },
-      ]
-    },
-    { /*second entry just for demo*/
-      id: '2',
-      name: 'building 11 apt C',
-      code: '82749',
-      createdby: 'sarah',
-      members: [
-        { id: 'm4', name: 'jessica', avatar: '[ph]' },
-        { id: 'm5', name: 'sarah', avatar: '[ph]' },
-      ],
-      chores: [
-        { id: 'c8', name: 'vacuum living room', icon: '[ph]' },
-        { id: 'c9', name: 'water plants', icon: '[ph]' },
-      ]
-    }
-  ]);
-
-  //shows which home is currently expanded into view
-  const [expandedHomeId, setExpandedHomeId] = useState('1');
-
-  //allows us to edit the home name on page
-  const [editingHomeId, setEditingHomeId] = useState(null);
+  //name and code editing
+  const [editName, setEditName] = useState(null);
   const [editNameValue, setEditNameValue] = useState('');
+  const [editCode, setEditCode] = useState(null);
+  const [editCodeValue, setEditCodeValue] = useState('');
 
-  //helpers for when we integrate express to actually delete entries or to change ownership
-  //need to add to these once its ready
-  const handleEditHomeName = (homeId, newName) => {
-    console.log(`Updating home ${homeId} name to ${newName}`);
-    //updates the page with changes immediately
-    setHomes(prevHomes =>
-      prevHomes.map(home =>
-        home.id === homeId ? { ...home, name: newName } : home
-      )
-    );
-    //closes input
-    setEditingHomeId(null);
-  };
+  useEffect(() => {
+    const fetchHomesAndMembers = async () => {
+      if (!user) return;
+      
+      try {
+        const userMembershipsRes = await fetch(`http://localhost:8080/api/memberships/user/${user._id}`);
+        const userMemberships = await userMembershipsRes.json();
+        
+        const houses = userMemberships.map(m => m.house).filter(Boolean);
 
-  const handleDeleteChore = (homeId, choreId) => {
-    console.log(`Delete chore ${choreId} from home ${homeId}`);
-  };
+        const homesWithMembers = await Promise.all(houses.map(async (house) => {
+          const membersRes = await fetch(`http://localhost:8080/api/memberships/house/${house._id}`);
+          const membersData = await membersRes.json();
+          return { ...house, members: membersData }; 
+        }));
 
-  const handleRemoveMember = (homeId, memberId) => {
-    console.log(`Remove member ${memberId} from home ${homeId}`);
-  };
+        setHomes(homesWithMembers);
+      } catch (err) {
+        console.error("Error fetching homes:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleTransferOwnership = (homeId, newOwnerName) => {
-    console.log(`Promoting ${newOwnerName} to owner of home ${homeId}`);
+    fetchHomesAndMembers();
+  }, [user]);
 
-    //Update the page
-    setHomes(prevHomes => 
-      prevHomes.map(home => 
-        home.id === homeId ? { ...home, createdBy: newOwnerName } : home
-      )
-    );
-  };
-
-  const handleDeleteHome = (homeId) => {
-    console.log(`Deleting home ${homeId} from database`);
-
-    //Update the page
-    setHomes(prevHomes => prevHomes.filter(home => home.id !== homeId));
-    
-    //Collapses window after deletion
-    if (expandedHomeId === homeId) {
-      setExpandedHomeId(null);
+  //Notification creation, update this when you guys update notification model
+  const createNotification = async (message) => {
+    try {
+      await fetch(`http://localhost:8080/api/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient: user._id,
+          message: message,
+          createdAt: new Date()
+        })
+      });
+    } catch (err) {
+      console.error("Failed to create notification:", err);
     }
   };
+
+  //handles updating either text fields
+  const handleUpdateField = async (homeId, field, value) => {
+    if (!value.trim()) return;
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/houses/${homeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value.trim() })
+      });
+
+      if (res.ok) {
+        setHomes(prevHomes =>
+          prevHomes.map(home =>
+            home._id === homeId ? { ...home, [field]: value.trim() } : home
+          )
+        );
+        createNotification(`You updated the ${field === 'name' ? 'home name' : 'join code'} to "${value.trim()}"`);
+      } else {
+        alert(`Failed to save ${field}.`);
+      }
+    } catch (err) {
+      console.error(`Failed to update ${field}`, err);
+    }
+  };
+
+  //Change admin/owner function
+  const handleTransferOwnership = async (homeId, newOwnerId, newOwnerName) => {
+    if (!window.confirm(`Are you sure you want to make ${newOwnerName} the owner?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/houses/${homeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ createdBy: newOwnerId })
+      });
+
+      if (res.ok) {
+        setHomes(prevHomes => 
+          prevHomes.map(home => 
+            home._id === homeId ? { ...home, createdBy: newOwnerId } : home
+          )
+        );
+        createNotification(`Ownership transferred to ${newOwnerName}`);
+      } else {
+        alert("Failed to transfer ownership.");
+      }
+    } catch (err) {
+      console.error("Failed to transfer ownership", err);
+    }
+  };
+
+  //Delete Home
+  const handleDeleteHome = async (homeId) => {
+    if (!window.confirm("Are you sure you want to delete this home?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/houses/${homeId}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setHomes(prevHomes => prevHomes.filter(home => home._id !== homeId));
+        createNotification(`You successfully deleted a home`);
+      } else {
+        alert("Failed to delete the home.");
+      }
+    } catch (err) {
+      console.error("Failed to delete home", err);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#d8c7b3] flex items-center justify-center font-sans text-[#5c4b3f]">Loading homes...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#d8c7b3] p-6 font-sans flex flex-col items-center">
 
-      {/*content body*/}
       <div className="w-full max-w-3xl flex flex-col gap-6 mb-12">
+        {homes.length === 0 && (
+          <div className="text-center text-[#5c4b3f] mt-10">You aren't in any homes yet.</div>
+        )}
+
         {homes.map((home) => {
-          const isExpanded = expandedHomeId === home.id;
+          //Checks if user is owner
+          const isCurrentUserOwner = home.createdBy === user._id;
 
-          //Collapsed window
-          if (!isExpanded) {
-            return (
-              <div 
-                key={home.id}
-                onClick={() => setExpandedHomeId(home.id)}
-                className="bg-[#fcf8f2] rounded-2xl p-6 shadow-sm flex justify-between items-center cursor-pointer hover:bg-[#f5ebd9] transition border border-[#e8dccb]"
-              >
-                <h2 className="text-2xl font-semibold text-[#5c4b3f]">{home.name}</h2>
-                <span className="text-[#a18a7c] text-xl">v</span>
-              </div>
-            );
-          }
-
-          //Expanded Window
           return (
-            <div key={home.id} className="bg-[#fcf8f2] rounded-2xl p-8 shadow-sm border border-[#e8dccb]">
+            <div key={home._id} className="bg-[#fcf8f2] rounded-2xl p-8 shadow-sm border border-[#e8dccb] flex flex-col">
               
-              {/*House name and code*/}
-               <div className="flex justify-between items-start mb-8">
-                <div>
-                  {editingHomeId === home.id ? (
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="text"
-                        value={editNameValue}
-                        onChange={(e) => setEditNameValue(e.target.value)}
-                        className="text-3xl font-semibold text-[#5c4b3f] bg-white border border-[#a18a7c] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#a18a7c] w-64"
-                        autoFocus
-                      />
-                      {/*save changes*/}
-                      <button 
-                        onClick={() => handleEditHomeName(home.id, editNameValue)}
-                        className="text-sm text-green-700 hover:underline mt-1 font-medium"
-                      >
-                        save
-                      </button>
-                      {/*cancel*/}
-                      <button 
-                        onClick={() => setEditingHomeId(null)}
-                        className="text-sm text-red-600/70 hover:underline mt-1 font-medium"
-                      >
-                        cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-3xl font-semibold text-[#5c4b3f]">{home.name}</h2>
+              {/*Name section, buttons only visible if owner*/}
+              <div className="mb-6">
+                <span className="text-sm text-[#a18a7c] uppercase tracking-wider font-bold block mb-1">Home Name</span>
+                {editName === home._id ? (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={editNameValue}
+                      onChange={(e) => setEditNameValue(e.target.value)}
+                      className="text-2xl font-semibold text-[#5c4b3f] bg-white border border-[#a18a7c] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#a18a7c] w-64"
+                      autoFocus
+                    />
+                    <button 
+                      onClick={() => {
+                        handleUpdateField(home._id, 'name', editNameValue);
+                        setEditName(null);
+                      }}
+                      className="text-sm text-green-700 hover:underline font-medium"
+                    >
+                      save
+                    </button>
+                    <button 
+                      onClick={() => setEditName(null)}
+                      className="text-sm text-red-600/70 hover:underline font-medium"
+                    >
+                      cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-semibold text-[#5c4b3f]">{home.name}</h2>
+                    {isCurrentUserOwner && (
                       <button 
                         onClick={() => {
-                          setEditingHomeId(home.id);
+                          setEditName(home._id);
                           setEditNameValue(home.name);
+                          setEditCode(null);
                         }}
-                        className="text-sm text-[#a18a7c] underline hover:text-[#5c4b3f] mt-1"
+                        className="text-sm text-[#a18a7c] underline hover:text-[#5c4b3f]"
                       >
                         edit name
                       </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/*house code, editable by owner only*/}
+              <div className="mb-8 pb-6 border-b border-[#e8dccb]">
+                <span className="text-sm text-[#a18a7c] uppercase tracking-wider font-bold block mb-1">Join Code</span>
+                {editCode === home._id ? (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={editCodeValue}
+                      onChange={(e) => setEditCodeValue(e.target.value.toUpperCase())}
+                      className="text-lg font-bold text-[#5c4b3f] bg-white border border-[#a18a7c] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#a18a7c] w-32"
+                      autoFocus
+                    />
+                    <button 
+                      onClick={() => {
+                        handleUpdateField(home._id, 'code', editCodeValue);
+                        setEditCode(null);
+                      }}
+                      className="text-sm text-green-700 hover:underline font-medium"
+                    >
+                      save
+                    </button>
+                    <button 
+                      onClick={() => setEditCode(null)}
+                      className="text-sm text-red-600/70 hover:underline font-medium"
+                    >
+                      cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="text-[#5c4b3f] font-bold text-lg bg-[#e4dbd1] px-3 py-1 rounded-md border border-[#d1c5b8]">
+                      {home.code}
                     </div>
-                  )}
-                </div>
-                <div className="text-[#5c4b3f] font-medium">
-                  code: {home.code}
-                </div>
+                    {isCurrentUserOwner && (
+                      <button 
+                        onClick={() => {
+                          setEditCode(home._id);
+                          setEditCodeValue(home.code);
+                          setEditName(null);
+                        }}
+                        className="text-sm text-[#a18a7c] underline hover:text-[#5c4b3f]"
+                      >
+                        edit code
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/*house members*/}
-              <div className="mb-10">
-                <h3 className="text-xl text-[#5c4b3f] mb-4 flex items-center gap-2">
-                  members <span className="text-sm text-[#a18a7c]"></span>
+              <div>
+                <h3 className="text-sm text-[#a18a7c] uppercase tracking-wider font-bold mb-4">
+                  Members
                 </h3>
                 <div className="flex flex-wrap gap-6">
-                  {home.members.map(member => (
-                    <div key={member.id} className="flex flex-col items-center w-20">
-                      <img 
-                        //src={member.photo}  - uncomment once images are implemented
-                        //alt={member.name} 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-[#a18a7c]/20 mb-2"
-                      />
-                      <span className="text-sm font-medium text-[#5c4b3f] mb-1">{member.name}</span>
-                      <button 
-                        onClick={() => handleRemoveMember(home.id, member.id)}
-                        className="text-[10px] text-red-600/70 hover:underline mb-1"
-                      >
-                        remove
-                      </button>
-                      <button 
-                        onClick={() => handleTransferOwnership(home.id, member.name)}
-                        className="text-[10px] text-[#a18a7c] hover:underline text-center leading-tight"
-                      >
-                        transfer<br/>ownership {/*when this button is clicked just change the "created by" entry in the db to whoever is being promoted, or however else we decide to determine ownership*/ }
-                      </button>
-                    </div>
-                  ))}
+                  {home.members.map((memberUser, index) => {
+                    if (!memberUser) return null; 
+                    
+                    const isThisMemberTheOwner = home.createdBy === memberUser._id;
+
+                    return (
+                      <div key={memberUser._id || index} className="flex flex-col items-center w-16">
+                        <span className="text-xs font-medium text-[#5c4b3f] truncate w-full text-center mb-1">
+                          {memberUser.username}
+                        </span>
+
+                        {isThisMemberTheOwner ? (
+                          <span className="text-[10px] font-bold text-[#a18a7c] tracking-wider uppercase bg-[#a18a7c]/10 px-2 py-0.5 rounded">
+                            Owner
+                          </span>
+                        ) : (
+                          isCurrentUserOwner && (
+                            <button 
+                              onClick={() => handleTransferOwnership(home._id, memberUser._id, memberUser.username)}
+                              className="text-[10px] text-[#a18a7c] hover:text-[#5c4b3f] underline text-center leading-tight"
+                            >
+                              Make<br/>Owner
+                            </button>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/*Chores*/}
-              <div className="mb-10">
-                <h3 className="text-xl text-[#5c4b3f] mb-4 flex items-center gap-2">
-                  chores <span className="text-sm text-[#a18a7c]"></span>
-                </h3>
-                <div className="flex flex-wrap gap-3">
-                  {home.chores.map(chore => (
-                    <div 
-                      key={chore.id} 
-                      className="bg-[#e4dbd1] px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-[#5c4b3f] font-medium border border-[#d1c5b8]"
-                    >
-                      <span>{chore.icon} {chore.name}</span>
-                      <button 
-                        onClick={() => handleDeleteChore(home.id, chore.id)}
-                        className="ml-2 text-[#a18a7c] hover:text-red-500 font-bold"
-                        aria-label="Delete chore"
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                  
-                  <Link 
-                    to="/AddAssignChores" 
-                    className="bg-[#d8b4a8] px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-[#5c4b3f] font-medium shadow-sm hover:brightness-95 transition"
+              {/*home deltion*/}
+              {isCurrentUserOwner && (
+                <div className="mt-8 pt-4 border-t border-[#e8dccb] flex justify-end">
+                  <button 
+                    onClick={() => handleDeleteHome(home._id)}
+                    className="text-sm text-red-600/80 hover:underline font-medium"
                   >
-                    + add chores
-                  </Link>
+                    Delete Home
+                  </button>
                 </div>
-              </div>
-
-              {/*Save and Delete*/}
-              <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#a18a7c]/20">
-                <button 
-                  onClick={() => handleDeleteHome(home.id)}
-                  className="text-red-600/80 hover:underline font-medium text-sm"
-                >
-                  delete home
-                </button>
-              </div>
+              )}
 
             </div>
           );
         })}
       </div>
 
-      {/*return to Homes*/}
+      {/*back button*/}
       <div className="mt-auto">
         <Link 
           to="/Homes"
@@ -259,4 +317,4 @@ const EditHomes = () => {
   );
 };
 
-export default EditHomes;
+export default EditMyHomes;
