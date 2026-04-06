@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import React, { useState, useEffect } from "react";
+// import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useAuth } from "../../context/AuthContext";
@@ -10,12 +10,12 @@ const getDaysRemaining = (dueDate) => {
   const due = new Date(dueDate);
   return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 };
-const getDaysRemaining = (dueDate) => {
-  if (!dueDate) return null;
-  const today = new Date();
-  const due = new Date(dueDate);
-  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-};
+// const getDaysRemaining = (dueDate) => {
+//   if (!dueDate) return null;
+//   const today = new Date();
+//   const due = new Date(dueDate);
+//   return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+// };
 
 const formatScheduleDate = (dateStr) => {
   const date = new Date(dateStr);

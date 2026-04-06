@@ -33,7 +33,6 @@ const EditSpecificChore = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  // If choreId is present we're editing, otherwise creating
   const isCreating = !choreId;
   const memberId = searchParams.get("memberId");
   const houseId = searchParams.get("houseId");
@@ -46,7 +45,7 @@ const EditSpecificChore = () => {
   const [timeOpen, setTimeOpen] = useState(false);
   const [repeating, setRepeating] = useState(false);
   const [repeatingOpen, setRepeatingOpen] = useState(false);
-  const [loading, setLoading] = useState(!isCreating); // only load if editing
+  const [loading, setLoading] = useState(!isCreating);
   const [error, setError] = useState("");
 
   // Fetch existing chore when editing
@@ -60,13 +59,10 @@ const EditSpecificChore = () => {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
+
         setTitle(data.title ?? "");
         setIcon(data.icon ?? "");
-        setDescription(
-          Array.isArray(data.description)
-            ? data.description.join("\n")
-            : data.description ?? ""
-        );
+        setDescription(Array.isArray(data.description) ? data.description.join("\n") : data.description ?? "");
         setTime(data.time ?? "");
         setRepeating(data.repeating ?? false);
       } catch (err) {
@@ -77,7 +73,7 @@ const EditSpecificChore = () => {
     };
 
     fetchChore();
-  }, [choreId]);
+  }, [choreId, isCreating]);
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -145,11 +141,9 @@ const EditSpecificChore = () => {
       <div className="w-full max-w-2xl bg-[#f0ebe4] border-2 border-[#7ab3d4] rounded-2xl px-10 py-8 flex flex-col gap-6 relative">
 
         {/* Title */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-2">
-            {icon && <span className="text-2xl">{icon}</span>}
-            <EditableTitle value={title} onChange={setTitle} />
-          </div>
+        <div className="flex justify-center items-center gap-2">
+          {icon && <span className="text-2xl">{icon}</span>}
+          <EditableTitle value={title} onChange={setTitle} />
         </div>
 
         {/* Description */}
@@ -210,8 +204,10 @@ const EditSpecificChore = () => {
                   onChange={(e) => setTime(e.target.value)}
                   className="bg-[#e2ddd8] border border-[#c9b8aa] rounded-xl px-3 py-2 text-sm text-[#4e3728] outline-none"
                 />
-                <button onClick={() => setTimeOpen(false)} className="text-sm text-[#7a9e7e] font-medium">
-                <button onClick={() => setTimeOpen(false)} className="text-sm text-[#7a9e7e] font-medium">
+                <button
+                  onClick={() => setTimeOpen(false)}
+                  className="text-sm text-[#7a9e7e] font-medium"
+                >
                   done
                 </button>
               </div>
@@ -256,7 +252,6 @@ const EditSpecificChore = () => {
             onClick={handleSave}
             className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-base font-medium px-10 py-3 rounded-full transition-colors"
           >
-            {isCreating ? "create chore" : "save changes"}
             {isCreating ? "create chore" : "save changes"}
           </button>
           {!isCreating && (
