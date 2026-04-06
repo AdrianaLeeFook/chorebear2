@@ -91,6 +91,7 @@ const PersonCard = ({ member, houseId }) => {
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 const AddAssignChores = () => {
   const { house } = useAuth();
   const [members, setMembers] = useState([]);

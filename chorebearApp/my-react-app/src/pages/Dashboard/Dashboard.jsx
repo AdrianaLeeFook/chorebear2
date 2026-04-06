@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
+const getDaysRemaining = (dueDate) => {
+  if (!dueDate) return null;
+  const today = new Date();
+  const due = new Date(dueDate);
+  return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+};
 const getDaysRemaining = (dueDate) => {
   if (!dueDate) return null;
   const today = new Date();
@@ -176,8 +184,6 @@ const Dashboard = () => {
         )}
 
         <div className="flex flex-row gap-6 items-start">
-
-          {/* ── Left Column ── */}
           <div className="flex flex-col gap-4 w-72 shrink-0">
 
             <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
@@ -232,26 +238,33 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* ── Right Column: Schedule ── */}
           <div className="flex flex-col gap-3 flex-1">
             <div className="bg-white border border-[#e8d5c4] rounded-xl overflow-hidden">
               <div className="text-center text-base font-semibold text-[#4e3728] py-3 border-b border-[#e8d5c4]">
+                {activeHouse?.name || "your house"}
                 {activeHouse?.name || "your house"}
               </div>
               {schedule.map((row, idx) => (
                 <div
                   key={idx}
+                  key={idx}
                   className="flex flex-row items-center border-b border-[#e8d5c4] last:border-b-0 min-h-[56px]"
                 >
                   <div className="w-16 shrink-0 flex flex-col items-center justify-center py-2 border-r border-[#e8d5c4]">
-                    <span className="text-xl font-bold text-[#4e3728] leading-none">{row.date}</span>
-                    <span className="text-[10px] text-[#a0816a] uppercase tracking-wide">{row.month}</span>
+                    <span className="text-xl font-bold text-[#4e3728] leading-none">
+                      {row.date}
+                    </span>
+                    <span className="text-[10px] text-[#a0816a] uppercase tracking-wide">
+                      {row.month}
+                    </span>
                     <span className="text-[10px] text-[#a0816a]">{row.day}</span>
                   </div>
                   <div className="flex flex-row flex-wrap gap-2 px-4 py-2">
                     {row.chores.map((chore, i) => (
                       <div key={i} className="flex flex-row items-center gap-2">
-                        <div className={`w-7 h-7 rounded-full ${chore.color} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                        <div
+                          className={`w-7 h-7 rounded-full ${chore.color} flex items-center justify-center text-white text-xs font-bold shrink-0`}
+                        >
                           {chore.member}
                         </div>
                         <span className="text-sm text-[#4e3728]">{chore.label}</span>

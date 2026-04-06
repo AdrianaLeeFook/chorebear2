@@ -211,6 +211,7 @@ const EditSpecificChore = () => {
                   className="bg-[#e2ddd8] border border-[#c9b8aa] rounded-xl px-3 py-2 text-sm text-[#4e3728] outline-none"
                 />
                 <button onClick={() => setTimeOpen(false)} className="text-sm text-[#7a9e7e] font-medium">
+                <button onClick={() => setTimeOpen(false)} className="text-sm text-[#7a9e7e] font-medium">
                   done
                 </button>
               </div>
@@ -255,6 +256,7 @@ const EditSpecificChore = () => {
             onClick={handleSave}
             className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-base font-medium px-10 py-3 rounded-full transition-colors"
           >
+            {isCreating ? "create chore" : "save changes"}
             {isCreating ? "create chore" : "save changes"}
           </button>
           {!isCreating && (
