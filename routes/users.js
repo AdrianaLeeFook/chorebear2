@@ -56,4 +56,34 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Update a user's username
+router.put('/:id', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username || !username.trim()) {
+      return res.status(400).json({ message: 'Username cannot be empty' });
+    }
+
+    const existing = await User.findOne({ username: username.trim() });
+    if (existing && existing._id.toString() !== req.params.id) {
+      return res.status(400).json({ message: 'Username already taken' });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { username: username.trim() },
+      { new: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ username: updatedUser.username });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
