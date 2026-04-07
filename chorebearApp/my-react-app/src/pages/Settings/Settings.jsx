@@ -1,27 +1,59 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { user, updateUser, logout } = useAuth();
 
   const [notifications, setNotifications] = useState("enabled");
-  const [role, setRole] = useState("house owner");
-  const [name, setName] = useState("Jessica");
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [name, setName] = useState(user?.username || "");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleLogout = () => {
+    logout();
     navigate("/");
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("house");
   };
 
-  const handleProfilePictureChange = (e) => {
-    const file = e.target.files[0];
+  const handleSave = async () => {
+    console.log("user object:", user);
+    
+    
+    if (!name.trim()) {
+      setError("name cannot be empty");
+      return;
+    }
+    try {
+      setSaving(true);
+      setMessage("");
+      setError("");
 
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfilePicture(imageUrl);
+      const res = await fetch(`http://localhost:8080/api/users/${user._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ username: name.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "failed to save settings");
+        return;
+      }
+
+      // Update context + localStorage so the change is reflected everywhere immediately
+      updateUser({ username: data.username ?? name.trim() });
+      setMessage("settings saved successfully!");
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+      setError("something went wrong, please try again");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -32,31 +64,10 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-[#f5ede3] flex flex-col">
       <div className="flex-1 flex flex-col justify-center items-center gap-8 px-8 py-12">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-28 h-28 rounded-full overflow-hidden bg-[#d9d9d9] flex items-center justify-center">
-            {profilePicture ? (
-              <img
-                src={profilePicture}
-                alt="profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-[#6b4b3e] text-sm">no photo</span>
-            )}
-          </div>
-
-          <label className="bg-[#7a9e7e] hover:bg-[#6a8e6e] text-white text-sm font-medium px-6 py-2 rounded-full cursor-pointer transition-colors">
-            change profile picture
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleProfilePictureChange}
-              className="hidden"
-            />
-          </label>
-        </div>
 
         <div className="flex flex-col gap-7">
+
+          {/* Notifications */}
           <div className="flex flex-row items-center gap-8">
             <span className="text-[#4e3728] font-semibold text-lg w-52 text-right">
               push notifications
@@ -71,21 +82,17 @@ const Settings = () => {
             </select>
           </div>
 
+          {/* Role (READ ONLY) */}
           <div className="flex flex-row items-center gap-8">
             <span className="text-[#4e3728] font-semibold text-lg w-52 text-right">
               house role
             </span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className={`${fieldClass} cursor-pointer appearance-none`}
-            >
-              <option value="admin">admin</option>
-              <option value="house owner">house owner</option>
-              <option value="member">member</option>
-            </select>
+            <div className={`${fieldClass} capitalize`}>
+              {user?.role || "member"}
+            </div>
           </div>
 
+          {/* Name */}
           <div className="flex flex-row items-center gap-8">
             <span className="text-[#4e3728] font-semibold text-lg w-52 text-right">
               name
@@ -93,13 +100,28 @@ const Settings = () => {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); setMessage(""); setError(""); }}
               className={inputClass}
             />
           </div>
+
+          {/* Save Button */}
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#7a9e7e] hover:bg-[#6a8e6e] disabled:opacity-60 text-white text-sm font-medium px-8 py-3 rounded-full transition-colors"
+            >
+              {saving ? "saving..." : "save"}
+            </button>
+          </div>
+
+          {message && <p className="text-center text-[#4e3728] text-sm">{message}</p>}
+          {error && <p className="text-center text-[#c0392b] text-sm">{error}</p>}
         </div>
       </div>
 
+      {/* Logout */}
       <div className="flex justify-end px-8 pb-8">
         <button
           onClick={handleLogout}

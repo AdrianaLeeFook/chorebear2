@@ -69,11 +69,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Exposed so Settings (and any other page) can update the user in context + localStorage
+  const updateUser = (updatedFields) => {
+    const updatedUser = { ...user, ...updatedFields };
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
   const house = houses[activeHouseIndex] || null;
 
   return (
     <AuthContext.Provider value={{
-      user, houses, house, activeHouseIndex,
+      user, setUser, updateUser,
+      houses, house, activeHouseIndex,
       setActiveHouseIndex, login, logout, joinHouse, setActiveHouse, loadingAuth
     }}>
       {children}
