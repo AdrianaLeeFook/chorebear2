@@ -4,14 +4,12 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function JoinHome() {
   const navigate = useNavigate();
-  // const { user, joinHouse } = useAuth();
+  const { user, joinHouse } = useAuth();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const inputsRef = useRef([]);
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
-  const {user} = useAuth();
   const currentUserId = user?._id;
 
   const handleChange = (value, index) => {
@@ -66,9 +64,10 @@ export default function JoinHome() {
       console.log("Status:", res.status);
 
       if (!res.ok) {
-
         throw new Error(data.message || "invalid home code");
       }
+
+      joinHouse(data.home);
 
       navigate("/JoinCreateSuccess", {
         state: {
