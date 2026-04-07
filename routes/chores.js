@@ -1,86 +1,102 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const Chore = require('../models/Chore');
+const Notification = require('../models/Notification');
 
-// Register
-router.post('/register', async (req, res) => {
+// Create a chore
+router.post('/', async (req, res) => {
   try {
-    const { username, password, email, role } = req.body;
-    const existing = await User.findOne({ username });
-    if (existing) return res.status(400).json({ message: 'Username already taken' });
-    const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashed, email, role });
-    await user.save();
-    res.status(201).json({ _id: user._id, username: user.username, email: user.email, role: user.role });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+    const chore = new Chore(req.body);
+    await chore.save();
 
-// Login
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ email: username });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
-
-    const token = jwt.sign(
-      { id: user._id, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role
+    await Notification.create({
+      houseId: chore.house,
+      message: `A new chore "${chore.title}" was created`,
+      type: 'chore',
+      createdBy: chore.createdBy,
     });
+
+    res.status(201).json(chore);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get all users
-router.get('/', async (req, res) => {
+// Get chores by house
+router.get('/house/:houseId', async (req, res) => {
   try {
-    const users = await User.find().select('-password');
-    res.json(users);
+    const query = { house: req.params.houseId };
+    if (req.query.memberId) query.assignedTo = req.query.memberId;
+
+    const chores = await Chore.find(query).populate('assignedTo');
+    res.json(chores);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Update a user's username
+// Get a single chore by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const chore = await Chore.findById(req.params.id).populate('assignedTo');
+    if (!chore) return res.status(404).json({ message: 'Chore not found' });
+    res.json(chore);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update a chore
 router.put('/:id', async (req, res) => {
   try {
-    const { username } = req.body;
+    const existingChore = await Chore.findById(req.params.id).populate('assignedTo');
 
-    if (!username || !username.trim()) {
-      return res.status(400).json({ message: 'Username cannot be empty' });
+    if (!existingChore) {
+      return res.status(404).json({ message: 'Chore not found' });
     }
 
-    const existing = await User.findOne({ username: username.trim() });
-    if (existing && existing._id.toString() !== req.params.id) {
-      return res.status(400).json({ message: 'Username already taken' });
-    }
+    const wasCompleted = existingChore.completed;
 
-    const updatedUser = await User.findByIdAndUpdate(
+    const updatedChore = await Chore.findByIdAndUpdate(
       req.params.id,
-      { username: username.trim() },
+      req.body,
       { new: true }
-    ).select('-password');
+    ).populate('assignedTo');
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+    if (req.body.completed === true && wasCompleted === false) {
+      await Notification.create({
+        houseId: updatedChore.house,
+        message: `${updatedChore.assignedTo?.username || 'Someone'} completed "${updatedChore.title}"`,
+        type: 'chore_completed',
+        createdBy: updatedChore.assignedTo?._id || null,
+      });
     }
 
-    res.json({ username: updatedUser.username });
+    res.json(updatedChore);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete a chore
+router.delete('/:id', async (req, res) => {
+  try {
+    const chore = await Chore.findById(req.params.id);
+
+    if (!chore) {
+      return res.status(404).json({ message: 'Chore not found' });
+    }
+
+    await Notification.create({
+      houseId: chore.house,
+      message: `The chore "${chore.title}" was deleted`,
+      type: 'chore_deleted',
+      createdBy: chore.createdBy || null,
+    });
+
+    await Chore.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Chore deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
