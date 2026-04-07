@@ -4,14 +4,13 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function CreateHome() {
   const navigate = useNavigate();
-
+  const { user, joinHouse } = useAuth();
   const [homeName, setHomeName] = useState("");
   const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
 
   // const currentUser = JSON.parse(localStorage.getItem("user"));
-  const {user} = useAuth();
   const currentUserId = user?._id;
 
   const handleCreate = async () => {
@@ -47,6 +46,8 @@ export default function CreateHome() {
         throw new Error(data.message || "failed to create home");
       }
 
+      joinHouse(data);
+      
       navigate("/JoinCreateSuccess", {
         state: {
           type: "create",
