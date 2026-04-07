@@ -26,28 +26,30 @@ const avatarColors = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, houses, activeHouseIndex, setActiveHouseIndex, loadingAuth } = useAuth();
+
   const [chores, setChores] = useState([]);
   const [overdueChores, setOverdueChores] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const activeHouse = houses[activeHouseIndex] || null;
 
-
-  // Re-fetch whenever the selected house changes
   useEffect(() => {
     if (!user || !activeHouse) {
       setLoading(false);
       return;
     }
     fetchDashboardData(activeHouse);
+    fetchNotifications(activeHouse);
   }, [user, activeHouse]);
 
   const fetchDashboardData = async (house) => {
     try {
       setLoading(true);
       const res = await fetch(`http://localhost:8080/api/chores/house/${house._id}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const allChores = await res.json();
       const today = new Date();
@@ -107,6 +109,18 @@ const Dashboard = () => {
     }
   };
 
+  const fetchNotifications = async (house) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/notifications/house/${house._id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      if (res.ok) setNotifications(data);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
   const toggleChore = async (id) => {
     try {
       const chore = chores.find((c) => c.id === id);
@@ -118,12 +132,27 @@ const Dashboard = () => {
       setChores((prev) =>
         prev.map((c) => (c.id === id ? { ...c, done: !c.done } : c))
       );
+      if (activeHouse) {
+        fetchDashboardData(activeHouse);
+        fetchNotifications(activeHouse);
+      }
     } catch (err) {
       console.error("Failed to update chore:", err);
     }
   };
 
-  // takes a moment to load info of user
+  const deleteNotification = async (id) => {
+    try {
+      await fetch(`http://localhost:8080/api/notifications/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
+    }
+  };
+
   if (loadingAuth || loading) {
     return (
       <div className="min-h-screen bg-[#f5ede3] flex items-center justify-center">
@@ -152,9 +181,62 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#f5ede3] px-8 py-8">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
 
-        <h1 className="text-3xl font-bold text-[#4e3728]">
-          hello, {user?.username}!
-        </h1>
+        {/* Greeting + Notification Bell */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-[#4e3728]">
+            hello, {user?.username}!
+          </h1>
+
+          {/* Notification Bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative bg-white border border-[#e8d5c4] rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:bg-[#f9f4ee] transition"
+            >
+              <span className="text-xl">🔔</span>
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#c0392b] text-white text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-3 w-96 bg-white border border-[#e8d5c4] rounded-xl shadow-lg z-50 max-h-[420px] overflow-y-auto">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8d5c4]">
+                  <h2 className="text-base font-semibold text-[#4e3728]">notifications</h2>
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-[#a0816a] text-center">
+                    no notifications yet
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      className="px-4 py-3 border-b border-[#f0e0d0] last:border-b-0"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm text-[#4e3728]">{notification.message}</p>
+                          <p className="text-xs text-[#a0816a] mt-1">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteNotification(notification._id)}
+                          className="text-xs text-[#c0392b] hover:underline shrink-0"
+                        >
+                          remove
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* House tabs — only shown if user is in multiple houses */}
         {houses.length > 1 && (
@@ -180,6 +262,7 @@ const Dashboard = () => {
           {/* ── Left Column ── */}
           <div className="flex flex-col gap-4 w-72 shrink-0">
 
+            {/* Upcoming Chores */}
             <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 upcoming chores
@@ -210,6 +293,7 @@ const Dashboard = () => {
               )}
             </div>
 
+            {/* Overdue Chores */}
             <div className="bg-white border border-[#e8d5c4] rounded-xl p-4">
               <h2 className="text-center text-base font-semibold text-[#4e3728] mb-3">
                 overdue chores

@@ -11,8 +11,8 @@ export default function Landing() {
   const { login, joinHouse } = useAuth();       // never uses joinHouse. worth cleaning this up
   
   const handleLogin = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
   if (!username.trim() || !password.trim()) {
     setError("Please enter both username and password.");

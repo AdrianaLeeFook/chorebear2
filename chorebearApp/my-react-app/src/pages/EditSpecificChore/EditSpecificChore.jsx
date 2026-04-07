@@ -63,7 +63,6 @@ const EditSpecificChore = () => {
             ? data.description.join("\n")
             : data.description ?? ""
         );
-        // Format the date as YYYY-MM-DD for the date input
         setDueDate(data.dueDate ? new Date(data.dueDate).toISOString().split("T")[0] : "");
       } catch (err) {
         setError("Chore not found");

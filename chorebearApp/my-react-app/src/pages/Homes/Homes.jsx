@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
 const Homes = () => {
-  
+  //login 
   const { user, setHouse } = useAuth();
 
   //dummy user for testing back end stuff on my end
