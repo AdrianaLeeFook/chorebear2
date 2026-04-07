@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
 router.get('/house/:houseId', async (req, res) => {
   try {
     const memberships = await Membership.find({ house: req.params.houseId }).populate('user');
-    const members = memberships.map(m => m.user);
+    const members = memberships.map(m => ({ ...m.user.toObject(), role: m.role }));
     res.json(members);
   } catch (err) {
     res.status(500).json({ message: err.message });

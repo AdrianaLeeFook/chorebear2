@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 // ── Person Card ───────────────────────────────────────────────────────────────
-const PersonCard = ({ member, houseId }) => {
+const PersonCard = ({ member, houseId, isAdmin }) => {
   const navigate = useNavigate();
   const [chores, setChores] = useState([]);
 
@@ -47,7 +48,7 @@ const PersonCard = ({ member, houseId }) => {
       {/* Header */}
       <span className="text-xl font-bold text-[#4e3728]">{member.username}</span>
 
-      {/* Chore chips — always visible, no dropdown */}
+      {/* Chore chips */}
       <div className="flex flex-wrap gap-2 mt-3">
         {chores.length === 0 && (
           <p className="text-sm text-[#a0816a] italic">no chores assigned yet</p>
@@ -56,27 +57,31 @@ const PersonCard = ({ member, houseId }) => {
         {chores.map((chore) => (
           <div
             key={chore._id}
-            onClick={() => navigate(`/chores/${chore._id}/edit`)}
-            className="flex items-center gap-1.5 bg-[#fdf6ef] border border-[#e8d5c4] text-[#4e3728] text-sm px-3 py-1.5 rounded-xl cursor-pointer hover:bg-[#f0e0d0] transition-colors"
+            onClick={() => isAdmin && navigate(`/chores/${chore._id}/edit`)}
+            className={`flex items-center gap-1.5 bg-[#fdf6ef] border border-[#e8d5c4] text-[#4e3728] text-sm px-3 py-1.5 rounded-xl ${isAdmin ? "cursor-pointer hover:bg-[#f0e0d0]" : "cursor-default"} transition-colors`}
           >
             <span>{chore.icon}</span>
             <span>{chore.title}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); removeChore(chore._id); }}
-              className="ml-1 text-[#a0816a] hover:text-[#c0392b] text-xs leading-none"
-            >
-              ✕
-            </button>
+            {isAdmin && (
+              <button
+                onClick={(e) => { e.stopPropagation(); removeChore(chore._id); }}
+                className="ml-1 text-[#a0816a] hover:text-[#c0392b] text-xs leading-none"
+              >
+                ✕
+              </button>
+            )}
           </div>
         ))}
 
-        {/* Add new chore */}
-        <button
-          onClick={() => navigate(`/chores/new?memberId=${member._id}&houseId=${houseId}`)}
-          className="flex items-center gap-1.5 bg-[#dce8e0] border border-[#b5cdb9] text-[#4e3728] text-sm px-3 py-1.5 rounded-xl hover:bg-[#cddfd2] transition-colors"
-        >
-          📋 add new chore
-        </button>
+        {/* Add new chore — admins only */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate(`/chores/new?memberId=${member._id}&houseId=${houseId}`)}
+            className="flex items-center gap-1.5 bg-[#dce8e0] border border-[#b5cdb9] text-[#4e3728] text-sm px-3 py-1.5 rounded-xl hover:bg-[#cddfd2] transition-colors"
+          >
+            📋 add new chore
+          </button>
+        )}
       </div>
     </div>
   );
@@ -85,7 +90,9 @@ const PersonCard = ({ member, houseId }) => {
 // ── Page ──────────────────────────────────────────────────────────────────────
 const AddAssignChores = () => {
   const { houseId } = useParams();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -99,14 +106,21 @@ const AddAssignChores = () => {
           }
         );
         const data = await res.json();
-        if (res.ok) setMembers(data);
+        if (res.ok) {
+          setMembers(data);
+          console.log("memberships:", data);
+          console.log("current user id:", user?._id);
+          // Check if the current user is an admin in this house
+          const currentMembership = data.find(m => m._id === user?._id || m.user?._id === user?._id || m.user === user?._id);
+          setIsAdmin(currentMembership?.role === "admin");
+        }
       } catch (err) {
         console.error("Failed to fetch members:", err);
       }
     };
 
     fetchMembers();
-  }, [houseId]);
+  }, [houseId, user]);
 
   return (
     <div className="min-h-screen bg-[#f5ede3] px-8 py-8">
@@ -114,13 +128,17 @@ const AddAssignChores = () => {
 
         <h1 className="text-3xl font-bold text-[#4e3728]">chore list</h1>
 
+        {!isAdmin && (
+          <p className="text-sm text-[#a0816a] italic">only admins can add or remove chores</p>
+        )}
+
         {members.length === 0 && (
           <p className="text-[#a0816a] italic">no members in this house yet</p>
         )}
 
         <div className="flex flex-col gap-4">
           {members.map((member) => (
-            <PersonCard key={member._id} member={member} houseId={houseId} />
+            <PersonCard key={member._id} member={member} houseId={houseId} isAdmin={isAdmin} />
           ))}
         </div>
 
